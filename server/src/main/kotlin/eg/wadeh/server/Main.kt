@@ -1,0 +1,129 @@
+package eg.wadeh.server
+
+import eg.wadeh.core.CashFlowEngine
+import eg.wadeh.core.PaymentPlan
+import eg.wadeh.core.api.ApiError
+import eg.wadeh.core.api.Health
+import eg.wadeh.server.console.consoleRoutes
+import eg.wadeh.server.imports.ImportException
+import eg.wadeh.server.imports.ImportService
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.plugins.callid.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.slf4j.event.Level
+import java.time.Instant
+import java.util.UUID
+
+data class Config(val databaseUrl: String, val port: Int, val env: String, val version: String) {
+    companion object {
+        fun fromEnv() = Config(
+            databaseUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/wadeh_dev?user=wadeh&password=wadeh_dev",
+            port = System.getenv("PORT")?.toInt() ?: 8080,
+            env = System.getenv("APP_ENV") ?: "dev",
+            version = System.getenv("APP_VERSION") ?: "0.1.0-dev",
+        )
+    }
+}
+
+class App(val cfg: Config, val db: Db, val migration: String?) {
+    val catalog = Catalog(db, cfg.env)
+    val imports = ImportService(db)
+    val sessions = Sessions(db)
+}
+
+val apiJson = Json { encodeDefaults = true; explicitNulls = true; ignoreUnknownKeys = true; classDiscriminator = "type" }
+
+fun main(args: Array<String>) {
+    val cfg = Config.fromEnv()
+    val db = Db.connect(cfg.databaseUrl)
+    val migration = Db.migrate(db.ds)
+    when (args.firstOrNull()) {
+        "migrate" -> { println("Migrated to $migration"); return }
+        "seed" -> { Seed.run(db, cfg.env); println("Seeded (${cfg.env})"); return }
+    }
+    if (cfg.env != "prod" && System.getenv("SEED_ON_START") == "1") Seed.run(db, cfg.env)
+    val app = App(cfg, db, migration)
+    embeddedServer(Netty, port = cfg.port, host = "0.0.0.0") { module(app) }.start(wait = true)
+}
+
+@Serializable data class CashflowRequest(val plan: PaymentPlan)
+@Serializable data class ChangesRequest(val ids: List<String>, val since: String? = null)
+
+fun Application.module(app: App) {
+    install(ContentNegotiation) { json(apiJson) }
+    install(CallId) {
+        retrieveFromHeader("X-Request-Id")
+        generate { UUID.randomUUID().toString() }
+        verify { it.length in 8..64 && it.all { c -> c.isLetterOrDigit() || c == '-' } }
+        replyToHeader("X-Request-Id")
+    }
+    install(CallLogging) {
+        level = Level.INFO
+        callIdMdc("cid")
+        // Never log query strings: they can contain user search text.
+        format { c -> "${c.request.httpMethod.value} ${c.request.path()} -> ${c.response.status()?.value} cid=${c.callId}" }
+    }
+    install(StatusPages) {
+        exception<ImportException> { call, e ->
+            call.respond(if (e.code == "forbidden") HttpStatusCode.Forbidden else HttpStatusCode.UnprocessableEntity, ApiError(e.code, e.message ?: "", call.callId))
+        }
+        exception<IllegalArgumentException> { call, e -> call.respond(HttpStatusCode.BadRequest, ApiError("bad_request", e.message ?: "Bad request", call.callId)) }
+        exception<Throwable> { call, e ->
+            call.application.environment.log.error("Unhandled cid=${call.callId}", e)
+            call.respond(HttpStatusCode.InternalServerError, ApiError("internal", "Something went wrong. Reference: ${call.callId}", call.callId))
+        }
+    }
+    routing {
+        get("/") { call.respondRedirect("/console") }
+        route("/v1") { publicApi(app) }
+        consoleRoutes(app)
+    }
+}
+
+private fun Parameters.major(name: String): Long? = this[name]?.toBigDecimalOrNull()?.let { eg.wadeh.core.Money.ofMajor(it, this["currency"] ?: "EGP").minor }
+
+fun Route.publicApi(app: App) {
+    get("/health") {
+        val dbOk = runCatching { app.db.read { one("SELECT 1") { it.getInt(1) } } }.isSuccess
+        call.respond(if (dbOk) HttpStatusCode.OK else HttpStatusCode.ServiceUnavailable,
+            Health(if (dbOk) "ok" else "degraded", app.cfg.env, app.cfg.version, app.migration, Instant.now().toString()))
+    }
+    get("/listings") {
+        val p = call.request.queryParameters
+        val q = ListingQuery(
+            q = p["q"]?.take(120), offerType = p["offerType"], minBedrooms = p["minBedrooms"]?.toIntOrNull(),
+            maxPriceMinor = p.major("maxPrice"), maxCashToStartMinor = p.major("maxCashToStart"), unitType = p["unitType"],
+            availableOnly = p["available"] == "true", projectId = p["projectId"]?.let(UUID::fromString),
+            bbox = p["bbox"]?.split(',')?.mapNotNull { it.toDoubleOrNull() }, sort = p["sort"] ?: "recent", cursor = p["cursor"],
+            limit = p["limit"]?.toIntOrNull() ?: 20, ids = p["ids"]?.split(',')?.filter { it.isNotBlank() }?.map(UUID::fromString),
+        )
+        call.response.header(HttpHeaders.CacheControl, "no-store")
+        call.respond(app.catalog.search(q))
+    }
+    get("/listings/{id}") {
+        val id = runCatching { UUID.fromString(call.parameters["id"]) }.getOrNull() ?: return@get call.respond(HttpStatusCode.NotFound, ApiError("not_found", "No such listing", call.callId))
+        val d = app.catalog.detail(id) ?: return@get call.respond(HttpStatusCode.NotFound, ApiError("not_found", "This offer is no longer published", call.callId))
+        call.response.header(HttpHeaders.CacheControl, "no-store")
+        call.respond(d)
+    }
+    post("/changes") {
+        val r = call.receive<ChangesRequest>()
+        require(r.ids.size <= 100) { "At most 100 ids" }
+        call.respond(app.catalog.changesFor(r.ids.map(UUID::fromString), r.since?.let(Instant::parse)))
+    }
+    post("/cashflow") {
+        val r = call.receive<CashflowRequest>()
+        call.respond(CashFlowEngine.compute(r.plan))
+    }
+}

@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+/android/.gradle/
+/android/app/build/
+*.keystore
+*.jks
+.env
+.env.*
+!.env.example
+/evidence/tmp/
