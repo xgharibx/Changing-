@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -50,6 +52,10 @@ class ListingsViewModel(private val repo: Repository, private val saved: SavedSt
     private val _state = MutableStateFlow<LoadState<Page<ListingCard>>>(LoadState.Loading)
     val state: StateFlow<LoadState<Page<ListingCard>>> = _state
     private var job: Job? = null
+    /** Chips parsed on-device from the buyer's words (works offline and with AI switched off). */
+    val parsed = MutableStateFlow<eg.wadeh.core.ParsedQuery?>(null)
+    private val removed = MutableStateFlow(setOf<String>())
+    fun removeChip(kind: String) { removed.value = removed.value + kind; refresh(reparse = false) }
     private var generation = 0
 
     init { refresh() }
@@ -57,13 +63,23 @@ class ListingsViewModel(private val repo: Repository, private val saved: SavedSt
     fun setQuery(q: String) { saved["q"] = q }
 
     /** Cancels the previous request so a slow, older response can never replace newer results. */
-    fun refresh() {
+    fun refresh(reparse: Boolean = true) {
         job?.cancel()
         val gen = ++generation
-        val q = query.value
+        if (reparse) { removed.value = emptySet(); parsed.value = query.value.takeIf { it.isNotBlank() }?.let { eg.wadeh.core.QueryParser.parse(it) } }
+        val chips = parsed.value?.chips.orEmpty().filter { it.kind !in removed.value }
+        parsed.value = parsed.value?.copy(chips = chips)
+        val filters = buildMap {
+            chips.forEach { c -> when (c.kind) {
+                "unit_type" -> put("unitType", c.value); "min_bedrooms" -> put("minBedrooms", c.value); "offer_type" -> put("offerType", c.value)
+                "max_price" -> put("maxPrice", (c.value.toLong() / 100).toString()); "max_down_payment" -> put("maxCashToStart", (c.value.toLong() / 100).toString())
+            } }
+        }
+        val place = chips.firstOrNull { it.kind == "place" }?.evidence
+        val q = if (chips.isEmpty()) query.value else (place ?: "")
         if (_state.value !is LoadState.Ready) _state.value = LoadState.Loading
         job = viewModelScope.launch {
-            val r = runCatching { repo.listings(q.ifBlank { null }) }
+            val r = runCatching { repo.listings(q.ifBlank { null }, filters = filters) }
             if (gen != generation) return@launch
             _state.value = r.fold({ LoadState.Ready(it) }, { LoadState.Failed(it.message) })
         }
@@ -108,6 +124,7 @@ fun ListingsScreen(vm: ListingsViewModel, onOpen: (String) -> Unit, onToggleLang
                     val page = s.value.data
                     LazyColumn(state = listState, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("results")) {
                         if (s.value.fromCache) item { OfflineBanner(s.value.fetchedAt) }
+                        vm.parsed.value?.takeIf { it.chips.isNotEmpty() }?.let { pq -> item { ChipsRow(pq, arabic, vm::removeChip) } }
                         item {
                             Text(pluralStringResource(R.plurals.results_count, page.items.size, num(page.items.size, arabic)), style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
@@ -221,3 +238,30 @@ fun Tag(text: String, fg: androidx.compose.ui.graphics.Color, bg: androidx.compo
 }
 
 fun Modifier.clip12() = this.clip(RoundedCornerShape(12.dp))
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChipsRow(pq: eg.wadeh.core.ParsedQuery, arabic: Boolean, onRemove: (String) -> Unit) {
+    val st = LocalStatus.current
+    Column(Modifier.testTag("parsed_chips")) {
+        Text(stringResource(R.string.understood_as), style = MaterialTheme.typography.labelMedium, color = st.muted)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            pq.chips.forEach { c ->
+                val label = when (c.kind) {
+                    "max_price", "max_down_payment", "max_instalment" -> stringByName("chip", c.kind) + " " + money(c.value.toLong(), "EGP", arabic) +
+                        (c.extra["frequency"]?.takeIf { it != "unknown" }?.let { " / " + stringByName("freq", it) } ?: "") + (if (c.extra["bound"] == "approximate") " ≈" else "")
+                    "unit_type" -> stringByName("unit_type", c.value)
+                    "min_bedrooms" -> stringByName("chip", c.kind) + " " + num(c.value.toInt(), arabic)
+                    "offer_type" -> stringByName("chip", "rent")
+                    "commute" -> stringByName("chip", c.kind) + " " + (c.extra["destination_text"] ?: c.value) + (c.extra["arrive_by"]?.let { " · " + stringResource(R.string.arrive_by, numStr(it, arabic)) } ?: "")
+                    else -> stringByName("chip", c.kind) + " " + c.evidence
+                }
+                InputChip(selected = true, onClick = { onRemove(c.kind) }, label = { Text(label) },
+                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.remove_filter, label)) })
+            }
+        }
+        if (pq.chips.any { it.kind == "commute" }) Text(stringResource(R.string.commute_not_applied), style = MaterialTheme.typography.labelSmall, color = st.warn)
+        if (pq.chips.any { it.kind == "max_instalment" }) Text(stringResource(R.string.instalment_not_applied), style = MaterialTheme.typography.labelSmall, color = st.warn)
+        if ("instalment_frequency" in pq.clarifications) Text(stringResource(R.string.ask_frequency), style = MaterialTheme.typography.labelSmall, color = st.warn)
+    }
+}

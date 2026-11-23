@@ -29,6 +29,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="wadeh" android:host="listing" />
+                <data android:scheme="wadeh" android:host="search" />
             </intent-filter>
         </activity>
         <!-- Per-app language on Android 12 and below -->

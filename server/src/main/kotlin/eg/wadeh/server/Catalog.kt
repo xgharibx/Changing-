@@ -72,7 +72,9 @@ class Catalog(private val db: Db, private val env: String, private val clock: ()
         q.bbox?.takeIf { it.size == 4 }?.let { b ->
             where.append(" AND p.location && ST_MakeEnvelope(?,?,?,?,4326)::geography"); args += b[0]; args += b[1]; args += b[2]; args += b[3]
         }
-        val order = when (q.sort) {
+        // Offers a buyer can act on come first; sold/withdrawn stay visible (useful context) but never outrank them.
+        val actionable = "(CASE WHEN av.state IN ('AVAILABLE','RELEASED') THEN 0 WHEN av.state IN ('ON_HOLD','RESERVED','ANNOUNCED','UNKNOWN') THEN 1 ELSE 2 END)"
+        val order = actionable + ", " + when (q.sort) {
             "price_asc" -> "COALESCE(o.cash_price_minor, o.list_price_minor, o.monthly_rent_minor) ASC NULLS LAST, l.id"
             "price_desc" -> "COALESCE(o.cash_price_minor, o.list_price_minor, o.monthly_rent_minor) DESC NULLS LAST, l.id"
             else -> "l.last_confirmed_at DESC NULLS LAST, l.id"

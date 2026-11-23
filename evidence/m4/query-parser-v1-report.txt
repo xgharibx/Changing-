@@ -1,0 +1,6 @@
+suite=query-parser-v1.json parser=qp-1.0.0 cases=21 passed=21 checks=77
+  ar: 2/2
+  ar-EG: 10/10
+  arabizi: 2/2
+  en: 6/6
+  mixed: 1/1

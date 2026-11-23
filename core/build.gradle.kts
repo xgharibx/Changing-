@@ -12,4 +12,4 @@ dependencies {
     testRuntimeOnly(libs.junit.launcher)
     testImplementation(kotlin("test"))
 }
-tasks.test { useJUnitPlatform() }
+tasks.test { useJUnitPlatform(); systemProperty("evalReportDir", rootProject.file("evidence/m4").absolutePath) }

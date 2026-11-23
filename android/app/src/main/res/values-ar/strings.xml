@@ -167,4 +167,22 @@
     <string name="road_tertiary">طريق رئيسي محلي</string>
     <string name="road_secondary">طريق رئيسي</string>
     <string name="road_primary">طريق رئيسي كبير</string>
+    <string name="understood_as">فهمنا طلبك كده (اضغط للإزالة):</string>
+    <string name="remove_filter">إزالة %1$s</string>
+    <string name="chip_max_price">السعر حتى</string>
+    <string name="chip_max_down_payment">المطلوب للبدء حتى</string>
+    <string name="chip_max_instalment">القسط حتى</string>
+    <string name="chip_min_bedrooms">غرف النوم على الأقل</string>
+    <string name="chip_rent">للإيجار</string>
+    <string name="chip_place">في</string>
+    <string name="chip_commute">التنقل إلى</string>
+    <string name="chip_handover_by">الاستلام</string>
+    <string name="chip_finishing">التشطيب</string>
+    <string name="freq_monthly">شهريًا</string>
+    <string name="freq_quarterly">ربع سنوي</string>
+    <string name="freq_annual">سنويًا</string>
+    <string name="commute_not_applied">التنقل لا يفلتر النتائج بعد: اختر عربية أو مشي واليوم لتطبيقه.</string>
+    <string name="instalment_not_applied">حد القسط معروض لكنه لا يُستخدم للفلترة بعد.</string>
+    <string name="ask_frequency">القسط ده شهري ولا ربع سنوي؟ ده بيغيّر الوحدات المناسبة.</string>
+    <string name="arrive_by">قبل %1$s</string>
 </resources>

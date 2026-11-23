@@ -71,8 +71,8 @@ class Repository(context: Context, private val baseUrl: String = BuildConfig.API
         }
     }
 
-    suspend fun listings(q: String?, cursor: String? = null): Loaded<Page<ListingCard>> =
-        get("/v1/listings", mapOf("q" to q, "cursor" to cursor, "limit" to "30"), Page.serializer(ListingCard.serializer()), "listings|$q|$cursor")
+    suspend fun listings(q: String?, cursor: String? = null, filters: Map<String, String> = emptyMap()): Loaded<Page<ListingCard>> =
+        get("/v1/listings", mapOf("q" to q, "cursor" to cursor, "limit" to "30") + filters, Page.serializer(ListingCard.serializer()), "listings|$q|$cursor|${filters.toSortedMap()}")
 
     suspend fun detail(id: String): Loaded<ListingDetail> = get("/v1/listings/$id", emptyMap(), ListingDetail.serializer(), "detail|$id")
 

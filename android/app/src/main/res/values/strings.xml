@@ -167,4 +167,22 @@
     <string name="road_tertiary">Local main road</string>
     <string name="road_secondary">Main road</string>
     <string name="road_primary">Major road</string>
+    <string name="understood_as">Understood as (tap to remove):</string>
+    <string name="remove_filter">Remove %1$s</string>
+    <string name="chip_max_price">Price up to</string>
+    <string name="chip_max_down_payment">Cash to start up to</string>
+    <string name="chip_max_instalment">Instalment up to</string>
+    <string name="chip_min_bedrooms">Bedrooms at least</string>
+    <string name="chip_rent">For rent</string>
+    <string name="chip_place">In</string>
+    <string name="chip_commute">Commute to</string>
+    <string name="chip_handover_by">Handover</string>
+    <string name="chip_finishing">Finishing</string>
+    <string name="freq_monthly">month</string>
+    <string name="freq_quarterly">quarter</string>
+    <string name="freq_annual">year</string>
+    <string name="commute_not_applied">Commute is not filtering results yet: choose car or walking and the day to apply it.</string>
+    <string name="instalment_not_applied">Instalment ceiling is shown but not yet used to filter.</string>
+    <string name="ask_frequency">Is that instalment monthly or quarterly? It changes which homes fit.</string>
+    <string name="arrive_by">by %1$s</string>
 </resources>

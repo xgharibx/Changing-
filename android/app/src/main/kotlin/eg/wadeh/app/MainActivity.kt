@@ -54,15 +54,16 @@ class MainActivity : AppCompatActivity() {
                 val backStack by nav.currentBackStackEntryAsState()
                 val route = backStack?.destination?.route
                 androidx.compose.material3.Scaffold(modifier = Modifier.semantics { testTagsAsResourceId = true }, bottomBar = {
-                    if (route == "listings" || route == "saved") NavigationBar {
-                        NavigationBarItem(selected = route == "listings", onClick = { nav.navigate("listings") { popUpTo("listings") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                    if (route?.startsWith("listings") == true || route == "saved") NavigationBar {
+                        NavigationBarItem(selected = route?.startsWith("listings") == true, onClick = { nav.navigate("listings?q=") { popUpTo("listings?q={q}") { saveState = true }; launchSingleTop = true; restoreState = true } },
                             icon = { Icon(Icons.Outlined.Search, null) }, label = { Text(stringResource(R.string.nav_search)) })
-                        NavigationBarItem(selected = route == "saved", onClick = { nav.navigate("saved") { popUpTo("listings") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                        NavigationBarItem(selected = route == "saved", onClick = { nav.navigate("saved") { popUpTo("listings?q={q}") { saveState = true }; launchSingleTop = true; restoreState = true } },
                             icon = { Icon(Icons.Outlined.BookmarkBorder, null) }, label = { Text(stringResource(R.string.nav_saved)) }, modifier = Modifier.testTag("nav_saved"))
                     }
                 }) { pad ->
-                NavHost(nav, startDestination = "listings", modifier = Modifier.padding(pad)) {
-                    composable("listings") {
+                NavHost(nav, startDestination = "listings?q={q}", modifier = Modifier.padding(pad)) {
+                    composable("listings?q={q}", arguments = listOf(navArgument("q") { type = NavType.StringType; defaultValue = "" }),
+                        deepLinks = listOf(navDeepLink { uriPattern = "wadeh://search?q={q}" })) {
                         val vm: ListingsViewModel = viewModel(factory = factory { ListingsViewModel(repo, it) })
                         ListingsScreen(vm, onOpen = { id -> nav.navigate("listing/$id") }, onToggleLanguage = ::toggleLanguage)
                     }
@@ -82,7 +83,7 @@ class MainActivity : AppCompatActivity() {
                     ) { entry ->
                         val id = entry.arguments?.getString("id").orEmpty()
                         val vm: DetailViewModel = viewModel(key = "detail-$id", factory = factory { DetailViewModel(repo, id, store) })
-                        DetailScreen(vm, onBack = { if (!nav.popBackStack()) nav.navigate("listings") }, onOpen = { other -> nav.navigate("listing/$other") })
+                        DetailScreen(vm, onBack = { if (!nav.popBackStack()) nav.navigate("listings?q=") }, onOpen = { other -> nav.navigate("listing/$other") })
                     }
                 }
                 }
