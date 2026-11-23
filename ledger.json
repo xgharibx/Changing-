@@ -1,37 +1,297 @@
 {
-  "schema": "wadeh-ledger/1",
-  "statuses": ["planned", "implemented", "exercised_fixtures", "verified_authorised_data", "externally_blocked", "released"],
-  "rule": "Status advances only with an evidence path produced by a check that someone other than the implementing pass can rerun. 'exercised_fixtures' means synthetic data only.",
-  "features": [
-    {"id": "F-IMP-01", "name": "Supplier CSV/XLSX import with Arabic headers, Arabic-Indic digits, currency strings, ambiguous dates", "user": "supplier agent", "status": "exercised_fixtures", "depends": [],
-     "acceptance": "Mixed Arabic/English template parses; each invalid row has a remediation note; 100 rows with 2 invalid identifies rows 18 and 59.",
-     "evidence": ["server/src/test/kotlin/eg/wadeh/server/SupplyToPhoneTest.kt#100 rows with 2 invalid", "evidence/m1/console-batch-3221e48a.png"], "verified_rev": "see PROGRESS.md"},
-    {"id": "F-IMP-02", "name": "Stage → preview → four-eyes publish; re-plan inside publish transaction", "user": "verifier", "status": "exercised_fixtures", "depends": ["F-IMP-01"],
-     "acceptance": "Uploader cannot publish own batch; nothing public before publish.", "evidence": ["SupplyToPhoneTest#M1 acceptance", "evidence/m1/demo-step1.log"]},
-    {"id": "F-IMP-03", "name": "Replay idempotency (file hash + offer-fact hash); evidence age from asserted date", "user": "operator", "status": "exercised_fixtures", "depends": ["F-IMP-02"],
-     "acceptance": "Identical or renamed file returns same batch; same facts new bytes = unchanged; stale sheet does not refresh confirmation.", "evidence": ["SupplyToPhoneTest#stale sheet", "SupplyToPhoneTest#M1 acceptance"]},
-    {"id": "F-IMP-04", "name": "Availability ordering rules (late/duplicate/correction)", "user": "buyer", "status": "exercised_fixtures", "depends": ["F-IMP-02"],
-     "acceptance": "Sold then older available then duplicate: no reopen, no second event; newer correction with reason reopens.", "evidence": ["SupplyToPhoneTest#sold then older available", "core ParseTest#availabilityRules"]},
-    {"id": "F-IMP-05", "name": "Two sellers, one physical unit; conflicting description held for review", "user": "buyer", "status": "exercised_fixtures", "depends": ["F-IMP-02"],
-     "acceptance": "1 unit, 2 listings; conflicting type row = conflict.", "evidence": ["SupplyToPhoneTest#two sellers"]},
-    {"id": "F-IMP-06", "name": "Full snapshot vs partial import; suspicious-change acknowledgement; batch revert", "user": "verifier", "status": "exercised_fixtures", "depends": ["F-IMP-02"],
-     "acceptance": "Missing rows withdraw only in full snapshot; >30% withdraw or >20% price move needs ack; revert restores prior version and emits a correction.", "evidence": ["SupplyToPhoneTest#full snapshot", "SupplyToPhoneTest#revert"]},
-    {"id": "F-ENG-01", "name": "Deterministic cash-flow engine (cashflow-1.0.0)", "user": "buyer", "status": "exercised_fixtures", "depends": [],
-     "acceptance": "EGY-Q1: 8,520,000 total; 1,700,000 through 2027; 820,000 on 2030-01-01; unknown parking → 8,400,000 + unresolved; rental, rounding, discount-basis cases.", "evidence": ["core/src/test/kotlin/eg/wadeh/core/CashFlowTest.kt", "SupplyToPhoneTest#EGY-Q1 through the API", "evidence/screens/detail-b12-0304-v1-ar.png"]},
-    {"id": "F-API-01", "name": "Public API v1: listings search (Arabic variants, aliases), detail with versions, plan, cashflow, changes", "user": "Android app", "status": "exercised_fixtures", "depends": ["F-IMP-02", "F-ENG-01"],
-     "acceptance": "Search finds التجمع / القاهره الجديده / Fifth Settlement; withdrawn offer 404.", "evidence": ["SupplyToPhoneTest#search finds Arabic spelling variants"]},
-    {"id": "F-AND-01", "name": "Android list + detail, bilingual, RTL, offline cache with fetch time, env badge", "user": "buyer", "status": "exercised_fixtures", "depends": ["F-API-01"],
-     "acceptance": "Fresh install fetches from dev API on emulator; detail shows exactly one price change after revision + replay.", "evidence": ["evidence/m1/", "evidence/screens/"]},
-    {"id": "F-CON-01", "name": "Operations console: login, upload, preview, publish/reject/revert, template, row report, supplier health", "user": "operator", "status": "exercised_fixtures", "depends": ["F-IMP-02"],
-     "acceptance": "Playwright run of console pages.", "evidence": ["evidence/m1/console-queue.png", "evidence/m1/console-batch-3221e48a.png"]},
-    {"id": "F-SEC-01", "name": "Privileged second factor for console", "user": "operator", "status": "planned", "depends": ["F-CON-01"], "acceptance": "TOTP required for verifier/admin roles."},
-    {"id": "F-DEC-01", "name": "Compare 2–4 units, shortlist, revocable share links", "user": "buyer", "status": "planned", "depends": ["F-API-01"]},
-    {"id": "F-DEC-02", "name": "What changed since last seen (saved homes)", "user": "buyer", "status": "planned", "depends": ["F-API-01"]},
-    {"id": "F-MAP-01", "name": "Map (MapLibre + OpenFreeMap), precision-aware pins", "user": "buyer", "status": "planned", "depends": ["F-API-01"]},
-    {"id": "F-MAP-02", "name": "Entrance-aware routing on pgRouting graph; divided-road synthetic test", "user": "buyer", "status": "planned", "depends": []},
-    {"id": "F-INQ-01", "name": "Viewing request lifecycle with partner inbox, slot policy, consent", "user": "buyer, partner", "status": "planned", "depends": ["F-API-01"], "blocked_note": "Production lead processing blocked by L-01 (PDPC licence)."},
-    {"id": "F-NEWS-01", "name": "Newsroom with corrections tied to projects", "user": "editor", "status": "planned", "depends": []},
-    {"id": "F-AI-01", "name": "Grounded assistant (typed tools, citations, kill switch, eval suite)", "user": "buyer", "status": "planned", "depends": ["F-API-01", "F-ENG-01"], "blocked_note": "Model provider key and spend approval pending (F-06). Deterministic parser path does not need it."},
-    {"id": "F-REL-01", "name": "Release AAB, Play listing, signing", "user": "founder", "status": "planned", "depends": [], "blocked_note": "Publisher signing key, package id, Play account: founder."}
-  ]
+ "schema": "wadeh-ledger/1",
+ "statuses": [
+  "planned",
+  "implemented",
+  "exercised_fixtures",
+  "verified_authorised_data",
+  "externally_blocked",
+  "released"
+ ],
+ "rule": "Status advances only with an evidence path produced by a check that someone other than the implementing pass can rerun. 'exercised_fixtures' means synthetic data only.",
+ "features": [
+  {
+   "id": "F-IMP-01",
+   "name": "Supplier CSV/XLSX import with Arabic headers, Arabic-Indic digits, currency strings, ambiguous dates",
+   "user": "supplier agent",
+   "status": "exercised_fixtures",
+   "depends": [],
+   "acceptance": "Mixed Arabic/English template parses; each invalid row has a remediation note; 100 rows with 2 invalid identifies rows 18 and 59.",
+   "evidence": [
+    "server/src/test/kotlin/eg/wadeh/server/SupplyToPhoneTest.kt#100 rows with 2 invalid",
+    "evidence/m1/console-batch-3221e48a.png"
+   ],
+   "verified_rev": "see PROGRESS.md"
+  },
+  {
+   "id": "F-IMP-02",
+   "name": "Stage → preview → four-eyes publish; re-plan inside publish transaction",
+   "user": "verifier",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-01"
+   ],
+   "acceptance": "Uploader cannot publish own batch; nothing public before publish.",
+   "evidence": [
+    "SupplyToPhoneTest#M1 acceptance",
+    "evidence/m1/demo-step1.log"
+   ]
+  },
+  {
+   "id": "F-IMP-03",
+   "name": "Replay idempotency (file hash + offer-fact hash); evidence age from asserted date",
+   "user": "operator",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02"
+   ],
+   "acceptance": "Identical or renamed file returns same batch; same facts new bytes = unchanged; stale sheet does not refresh confirmation.",
+   "evidence": [
+    "SupplyToPhoneTest#stale sheet",
+    "SupplyToPhoneTest#M1 acceptance"
+   ]
+  },
+  {
+   "id": "F-IMP-04",
+   "name": "Availability ordering rules (late/duplicate/correction)",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02"
+   ],
+   "acceptance": "Sold then older available then duplicate: no reopen, no second event; newer correction with reason reopens.",
+   "evidence": [
+    "SupplyToPhoneTest#sold then older available",
+    "core ParseTest#availabilityRules"
+   ]
+  },
+  {
+   "id": "F-IMP-05",
+   "name": "Two sellers, one physical unit; conflicting description held for review",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02"
+   ],
+   "acceptance": "1 unit, 2 listings; conflicting type row = conflict.",
+   "evidence": [
+    "SupplyToPhoneTest#two sellers"
+   ]
+  },
+  {
+   "id": "F-IMP-06",
+   "name": "Full snapshot vs partial import; suspicious-change acknowledgement; batch revert",
+   "user": "verifier",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02"
+   ],
+   "acceptance": "Missing rows withdraw only in full snapshot; >30% withdraw or >20% price move needs ack; revert restores prior version and emits a correction.",
+   "evidence": [
+    "SupplyToPhoneTest#full snapshot",
+    "SupplyToPhoneTest#revert"
+   ]
+  },
+  {
+   "id": "F-ENG-01",
+   "name": "Deterministic cash-flow engine (cashflow-1.0.0)",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [],
+   "acceptance": "EGY-Q1: 8,520,000 total; 1,700,000 through 2027; 820,000 on 2030-01-01; unknown parking → 8,400,000 + unresolved; rental, rounding, discount-basis cases.",
+   "evidence": [
+    "core/src/test/kotlin/eg/wadeh/core/CashFlowTest.kt",
+    "SupplyToPhoneTest#EGY-Q1 through the API",
+    "evidence/screens/detail-b12-0304-v1-ar.png"
+   ]
+  },
+  {
+   "id": "F-API-01",
+   "name": "Public API v1: listings search (Arabic variants, aliases), detail with versions, plan, cashflow, changes",
+   "user": "Android app",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02",
+    "F-ENG-01"
+   ],
+   "acceptance": "Search finds التجمع / القاهره الجديده / Fifth Settlement; withdrawn offer 404.",
+   "evidence": [
+    "SupplyToPhoneTest#search finds Arabic spelling variants"
+   ]
+  },
+  {
+   "id": "F-AND-01",
+   "name": "Android list + detail, bilingual, RTL, offline cache with fetch time, env badge",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-API-01"
+   ],
+   "acceptance": "Fresh install fetches from dev API on emulator; detail shows exactly one price change after revision + replay.",
+   "evidence": [
+    "evidence/m1/README.md",
+    "evidence/m1/device-03-detail-after-revision-and-replay.xml",
+    "evidence/screens/"
+   ]
+  },
+  {
+   "id": "F-CON-01",
+   "name": "Operations console: login, upload, preview, publish/reject/revert, template, row report, supplier health",
+   "user": "operator",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-IMP-02"
+   ],
+   "acceptance": "Playwright run of console pages.",
+   "evidence": [
+    "evidence/m1/console-queue.png",
+    "evidence/m1/console-batch-3221e48a.png"
+   ]
+  },
+  {
+   "id": "F-SEC-01",
+   "name": "Privileged second factor for console",
+   "user": "operator",
+   "status": "planned",
+   "depends": [
+    "F-CON-01"
+   ],
+   "acceptance": "TOTP required for verifier/admin roles."
+  },
+  {
+   "id": "F-DEC-01",
+   "name": "Compare 2–4 units, shortlist, revocable share links",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-API-01"
+   ],
+   "evidence": [
+    "evidence/m2/README.md",
+    "server/src/test/kotlin/eg/wadeh/server/DecisionTest.kt",
+    "core/src/test/kotlin/eg/wadeh/core/CompareTest.kt"
+   ],
+   "acceptance": "Compare 2–4 from saved; no 'lowest' total with an unknown fee; share link 410 after revoke"
+  },
+  {
+   "id": "F-DEC-02",
+   "name": "What changed since last seen (saved homes)",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-API-01"
+   ],
+   "evidence": [
+    "evidence/m2/device-05-saved-change-since-seen.xml"
+   ],
+   "acceptance": "Badge only on homes with changes after last seen; reconfirmation is not a change"
+  },
+  {
+   "id": "F-MAP-01",
+   "name": "Map (MapLibre + OpenFreeMap), precision-aware pins",
+   "user": "buyer",
+   "status": "planned",
+   "depends": [
+    "F-API-01"
+   ],
+   "blocked_note": "Native MapLibre view not built; web render proves style + attribution (evidence/m3/real-route-point90-to-auc.png). Needs a physical device for pixel verification."
+  },
+  {
+   "id": "F-MAP-02",
+   "name": "Entrance-aware routing on pgRouting graph; divided-road synthetic test",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [],
+   "evidence": [
+    "server/src/test/kotlin/eg/wadeh/server/RoutingTest.kt",
+    "evidence/m3/README.md",
+    "evidence/m3/real-route-point90-to-auc.png"
+   ],
+   "acceptance": "Divided-road synthetic test; real Point 90 → AUC Gate 5 route (needs field check)"
+  },
+  {
+   "id": "F-INQ-01",
+   "name": "Viewing request lifecycle with partner inbox, slot policy, consent",
+   "user": "buyer, partner",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-API-01"
+   ],
+   "blocked_note": "Production lead processing blocked by L-01 (PDPC licence); LEADS_ENABLED=false in prod.",
+   "evidence": [
+    "server/src/test/kotlin/eg/wadeh/server/InquiryTest.kt",
+    "evidence/m4/README.md"
+   ]
+  },
+  {
+   "id": "F-NEWS-01",
+   "name": "Newsroom with corrections tied to projects",
+   "user": "editor",
+   "status": "planned",
+   "depends": []
+  },
+  {
+   "id": "F-AI-01",
+   "name": "Natural-language search (deterministic parser, chips → filters); LLM assistant not enabled",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "depends": [
+    "F-API-01",
+    "F-ENG-01"
+   ],
+   "blocked_note": "LLM provider key and spend approval pending (F-06); held-out parser accuracy 10/12.",
+   "evidence": [
+    "evidence/m4/query-parser-v1-report.txt",
+    "evidence/m4/query-parser-holdout-v1-report.txt",
+    "evidence/m4/device-nl-search-ar-sentence.xml"
+   ]
+  },
+  {
+   "id": "F-REL-01",
+   "name": "Release AAB, Play listing, signing",
+   "user": "founder",
+   "status": "planned",
+   "depends": [],
+   "blocked_note": "Publisher signing key, package id, Play account: founder."
+  },
+  {
+   "id": "F-COV-01",
+   "name": "Operational coverage per locality with explicit denominator note",
+   "user": "founder, buyer",
+   "status": "exercised_fixtures",
+   "evidence": [
+    "evidence/m3/coverage-dev.json"
+   ]
+  },
+  {
+   "id": "F-ROUTE-APP",
+   "name": "Getting there: landmark origin (no location permission), gate, assumptions, missing legs",
+   "user": "buyer",
+   "status": "exercised_fixtures",
+   "evidence": [
+    "evidence/m3/device-getting-there-car.xml",
+    "evidence/screens/route-synthetic-divided-road-foot-missing-ar.png"
+   ]
+  },
+  {
+   "id": "F-NEWS-02",
+   "name": "Alerts delivery from outbox (push/email), quiet hours, dedupe",
+   "user": "buyer",
+   "status": "planned",
+   "depends": [
+    "F-INQ-01"
+   ]
+  },
+  {
+   "id": "F-FLAG-01",
+   "name": "Flagship: two commutes, one home (isochrone intersection + cash-flow)",
+   "user": "buyer",
+   "status": "planned",
+   "depends": [
+    "F-MAP-02",
+    "F-ENG-01"
+   ]
+  }
+ ],
+ "last_verified_revision": "see PROGRESS.md"
 }
