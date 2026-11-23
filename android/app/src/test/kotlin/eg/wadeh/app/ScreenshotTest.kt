@@ -61,10 +61,18 @@ class ScreenshotTest {
 
     private fun detail(file: String, name: String) {
         val d = wireJson.decodeFromString(ListingDetail.serializer(), res(file))
-        rule.setContent { WadehTheme { Box(Modifier.background(MaterialTheme.colorScheme.background)) { DetailBody(d, false, Instant.now(), isArabic()) {} } } }
+        rule.setContent { WadehTheme { Box(Modifier.background(MaterialTheme.colorScheme.background)) { DetailBody(d, false, Instant.now(), isArabic(), onOpen = {}) } } }
         save(name)
     }
 
+    private fun route(file: String, name: String) {
+        val r = wireJson.decodeFromString(eg.wadeh.core.api.RouteResult.serializer(), res(file))
+        rule.setContent { WadehTheme { Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).padding(16.dp)) { RouteView(r, isArabic()) } } }
+        save(name)
+    }
+    @Test @Config(qualifiers = "ar-w393dp-h900dp-xhdpi") fun route_auc_foot_ar() = route("route-auc-foot.json", "route-real-point90-auc-foot-ar")
+    @Test @Config(qualifiers = "en-w393dp-h900dp-xhdpi") fun route_synthetic_car_en() = route("route-synthetic-car.json", "route-synthetic-divided-road-car-en")
+    @Test @Config(qualifiers = "ar-w393dp-h700dp-xhdpi") fun route_synthetic_foot_missing_ar() = route("route-synthetic-foot-missing.json", "route-synthetic-divided-road-foot-missing-ar")
     @Test @Config(qualifiers = "en-w393dp-h1600dp-xhdpi") fun list_en() = list("list-en")
     @Test @Config(qualifiers = "ar-w393dp-h1600dp-xhdpi") fun list_ar() = list("list-ar")
     @Test @Config(qualifiers = "ar-w360dp-h740dp-night-xhdpi") fun list_ar_small_dark() = list("list-ar-small-dark")

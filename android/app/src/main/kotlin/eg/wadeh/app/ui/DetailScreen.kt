@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,6 +38,17 @@ import kotlinx.coroutines.launch
 class DetailViewModel(private val repo: Repository, val id: String, val store: eg.wadeh.app.data.SavedStore) : ViewModel() {
     private val _state = MutableStateFlow<LoadState<ListingDetail>>(LoadState.Loading)
     val state: StateFlow<LoadState<ListingDetail>> = _state
+    val route = MutableStateFlow<LoadState<eg.wadeh.core.api.RouteResult>?>(null)
+    val landmarks = MutableStateFlow<List<eg.wadeh.core.api.Landmark>>(emptyList())
+    val origin = MutableStateFlow<eg.wadeh.core.api.Landmark?>(null)
+    val mode = MutableStateFlow("car")
+    fun loadLandmarks() { viewModelScope.launch { runCatching { repo.landmarks() }.onSuccess { landmarks.value = it.data } } }
+    fun routeFrom(l: eg.wadeh.core.api.Landmark?, m: String = mode.value) {
+        origin.value = l; mode.value = m
+        if (l == null) return
+        route.value = LoadState.Loading
+        viewModelScope.launch { route.value = runCatching { repo.route(id, l.lng, l.lat, m) }.fold({ LoadState.Ready(it) }, { LoadState.Failed(it.message) }) }
+    }
     init { refresh() }
     fun refresh() { viewModelScope.launch {
         _state.value = runCatching { repo.detail(id) }.fold({ LoadState.Ready(it) }, { LoadState.Failed(it.message) })
@@ -72,7 +84,8 @@ fun DetailScreen(vm: DetailViewModel, onBack: () -> Unit, onOpen: (String) -> Un
                 is LoadState.Ready -> {
                     val homes by vm.store.homes.collectAsState()
                     val saved = homes.firstOrNull { it.listingId == s.value.data.card.id }
-                    DetailBody(s.value.data, s.value.fromCache, s.value.fetchedAt, arabic, onOpen, note = saved?.note, onNote = if (saved != null) { n -> vm.store.setNote(saved.listingId, n) } else null)
+                    DetailBody(s.value.data, s.value.fromCache, s.value.fetchedAt, arabic, onOpen, note = saved?.note, onNote = if (saved != null) { n -> vm.store.setNote(saved.listingId, n) } else null,
+                        gettingThere = { GettingThere(vm, arabic) })
                 }
             }
         }
@@ -102,7 +115,7 @@ private fun KeyFigure(label: String, value: String, sub: String? = null, emphasi
 
 @Composable
 internal fun DetailBody(d: ListingDetail, fromCache: Boolean, fetchedAt: java.time.Instant, arabic: Boolean, onOpen: (String) -> Unit,
-                        note: String? = null, onNote: ((String) -> Unit)? = null) {
+                        note: String? = null, onNote: ((String) -> Unit)? = null, gettingThere: (@Composable () -> Unit)? = null) {
     val c = d.card; val st = LocalStatus.current
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("detail")) {
         if (fromCache) item { OfflineBanner(fetchedAt) }
@@ -140,6 +153,7 @@ internal fun DetailBody(d: ListingDetail, fromCache: Boolean, fetchedAt: java.ti
                 label = { Text(stringResource(R.string.private_note)) }, supportingText = { Text(stringResource(R.string.private_note_hint)) }, minLines = 2)
         }
         item { ChangesSection(d.changes, c.currency, arabic) }
+        gettingThere?.let { g -> item { g() } }
         item {
             Section(stringResource(R.string.section_evidence)) {
                 Text(c.evidence.label.pick(arabic), style = MaterialTheme.typography.bodyMedium, color = if (c.evidence.stale) st.warn else MaterialTheme.colorScheme.onSurface, modifier = Modifier.testTag("evidence_label"))
@@ -233,4 +247,63 @@ private fun changeValue(ch: ChangeItem, v: String?, currency: String, arabic: Bo
     ch.field == "availability" -> stringByName("availability", v)
     ch.field == "handover" -> date(v, arabic)
     else -> numStr(v, arabic)
+}
+
+@Composable
+private fun GettingThere(vm: DetailViewModel, arabic: Boolean) {
+    val st = LocalStatus.current
+    val landmarks by vm.landmarks.collectAsState(); val origin by vm.origin.collectAsState()
+    val mode by vm.mode.collectAsState(); val route by vm.route.collectAsState()
+    var picking by remember { mutableStateOf(false) }
+    Section(stringResource(R.string.getting_there)) {
+        Text(stringResource(R.string.getting_there_privacy), style = MaterialTheme.typography.labelSmall, color = st.muted)
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = { vm.loadLandmarks(); picking = true }, modifier = Modifier.testTag("pick_origin")) {
+            Icon(Icons.Outlined.Place, contentDescription = null); Spacer(Modifier.width(6.dp))
+            Text(origin?.name?.pick(arabic) ?: stringResource(R.string.choose_starting_point))
+        }
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = mode == "car", onClick = { vm.routeFrom(origin, "car") }, label = { Text(stringResource(R.string.mode_car)) }, leadingIcon = { Icon(Icons.Outlined.DirectionsCar, null) })
+            FilterChip(selected = mode == "foot", onClick = { vm.routeFrom(origin, "foot") }, label = { Text(stringResource(R.string.mode_foot)) }, leadingIcon = { Icon(Icons.AutoMirrored.Outlined.DirectionsWalk, null) }, modifier = Modifier.testTag("mode_foot"))
+        }
+        when (val r = route) {
+            null -> {}
+            LoadState.Loading -> LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
+            is LoadState.Failed -> Text(stringResource(R.string.load_error), color = st.bad)
+            is LoadState.Ready -> RouteView(r.value.data, arabic)
+        }
+    }
+    if (picking) AlertDialog(onDismissRequest = { picking = false }, confirmButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.back)) } },
+        title = { Text(stringResource(R.string.choose_starting_point)) },
+        text = { Column { landmarks.forEach { l -> TextButton(onClick = { picking = false; vm.routeFrom(l) }, modifier = Modifier.fillMaxWidth()) { Text(l.name.pick(arabic), modifier = Modifier.fillMaxWidth()) } } } })
+}
+
+@Composable
+internal fun RouteView(r: eg.wadeh.core.api.RouteResult, arabic: Boolean) {
+    val st = LocalStatus.current
+    Column(Modifier.padding(top = 10.dp).testTag("route_result")) {
+        r.entrance?.let { e ->
+            Text(stringResource(R.string.route_to_gate, e.name.pick(arabic)), style = MaterialTheme.typography.titleSmall)
+            e.conditions?.let { Text(it.pick(arabic), style = MaterialTheme.typography.bodySmall, color = st.muted) }
+        }
+        if (r.distanceM != null && r.durationS != null) {
+            val mins = maxOf(1, (r.durationS!! + 59) / 60)
+            Text(stringResource(R.string.route_summary, num(r.distanceM!!, arabic), num(mins, arabic)), style = MaterialTheme.typography.titleMedium, color = st.money)
+            Text(stringResource(if (r.trafficStatus == "live") R.string.traffic_live else R.string.traffic_unavailable), style = MaterialTheme.typography.labelSmall, color = st.warn)
+            r.steps.forEach { s ->
+                Text("• " + (s.road?.pick(arabic) ?: stringByName("road", s.highway, stringResource(R.string.unnamed_road))) + " — " + stringResource(R.string.meters, num(s.distanceM, arabic)), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        r.missing.forEach { m ->
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp).background(st.warnBg, RoundedCornerShape(6.dp)).padding(8.dp).testTag("route_missing")) {
+                Icon(Icons.Outlined.ReportProblem, contentDescription = null, tint = st.warn, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp))
+                Column {
+                    Text(m.explanation.pick(arabic), style = MaterialTheme.typography.bodySmall, color = st.warn)
+                    if (m.straightLineM > 0) Text(stringResource(R.string.straight_line_only, num(m.straightLineM, arabic)), style = MaterialTheme.typography.labelSmall, color = st.warn)
+                }
+            }
+        }
+        r.assumptions.forEach { Text("· " + it.pick(arabic), style = MaterialTheme.typography.labelSmall, color = st.muted) }
+        Text(r.attribution + (r.dataAsOf?.let { " · " + stringResource(R.string.map_data_as_of, date(it.take(10), arabic)) } ?: ""), style = MaterialTheme.typography.labelSmall, color = st.muted)
+    }
 }

@@ -139,4 +139,32 @@
     <string name="private_note_hint">على هذا الهاتف فقط. لا تتم مشاركتها أبدًا.</string>
     <plurals name="changes_since_seen"><item quantity="zero">لا تغييرات</item><item quantity="one">تغيير واحد منذ آخر مرة</item><item quantity="two">تغييران منذ آخر مرة</item><item quantity="few">%1$s تغييرات منذ آخر مرة</item><item quantity="many">%1$s تغييرًا منذ آخر مرة</item><item quantity="other">%1$s تغيير منذ آخر مرة</item></plurals>
     <plurals name="homes_count"><item quantity="zero">لا وحدات</item><item quantity="one">وحدة واحدة</item><item quantity="two">وحدتان</item><item quantity="few">%1$s وحدات</item><item quantity="many">%1$s وحدة</item><item quantity="other">%1$s وحدة</item></plurals>
+    <string name="getting_there">إزاي توصل</string>
+    <string name="getting_there_privacy">اختر معلمًا عامًا. نقطة البداية تُستخدم لهذا المسار فقط ولا يحفظها «واضح».</string>
+    <string name="choose_starting_point">اختر نقطة البداية</string>
+    <string name="mode_car">عربية</string>
+    <string name="mode_foot">مشي</string>
+    <string name="route_to_gate">إلى: %1$s</string>
+    <string name="route_summary">%1$s م · حوالي %2$s دقيقة</string>
+    <string name="traffic_unavailable">تقدير بدون زحام. لا تتوفر بيانات مرور حيّة أو معتادة.</string>
+    <string name="traffic_live">يشمل حالة المرور الحالية.</string>
+    <string name="unnamed_road">طريق بدون اسم</string>
+    <string name="meters">%1$s م</string>
+    <string name="straight_line_only">المسافة المستقيمة فقط: %1$s م. لا نذكر زمن وصول.</string>
+    <string name="map_data_as_of">بيانات الخريطة بتاريخ %1$s</string>
+    <string name="road_footway">ممر مشاة</string>
+    <string name="road_pedestrian">شارع مشاة</string>
+    <string name="road_steps">سلالم</string>
+    <string name="road_path">ممر</string>
+    <string name="road_service">طريق خدمة</string>
+    <string name="road_primary_link">منزل/مطلع</string>
+    <string name="road_secondary_link">منزل/مطلع</string>
+    <string name="road_tertiary_link">منزل/مطلع</string>
+    <string name="road_trunk_link">منزل/مطلع</string>
+    <string name="road_motorway_link">منزل/مطلع</string>
+    <string name="road_residential">شارع سكني</string>
+    <string name="road_unclassified">طريق محلي</string>
+    <string name="road_tertiary">طريق رئيسي محلي</string>
+    <string name="road_secondary">طريق رئيسي</string>
+    <string name="road_primary">طريق رئيسي كبير</string>
 </resources>

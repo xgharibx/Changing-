@@ -7,6 +7,8 @@ import eg.wadeh.core.api.CompareResponse
 import eg.wadeh.core.api.CreateShareRequest
 import eg.wadeh.core.api.CreateShareResponse
 import eg.wadeh.core.api.ListingCard
+import eg.wadeh.core.api.Landmark
+import eg.wadeh.core.api.RouteResult
 import eg.wadeh.core.api.ListingDetail
 import eg.wadeh.core.api.Page
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +75,12 @@ class Repository(context: Context, private val baseUrl: String = BuildConfig.API
         get("/v1/listings", mapOf("q" to q, "cursor" to cursor, "limit" to "30"), Page.serializer(ListingCard.serializer()), "listings|$q|$cursor")
 
     suspend fun detail(id: String): Loaded<ListingDetail> = get("/v1/listings/$id", emptyMap(), ListingDetail.serializer(), "detail|$id")
+
+    suspend fun landmarks(): Loaded<List<Landmark>> = get("/v1/landmarks", emptyMap(), ListSerializer(Landmark.serializer()), "landmarks")
+
+    /** The origin is sent only for this request; it is not stored server-side (see privacy register PR-03). */
+    suspend fun route(listingId: String, lng: Double, lat: Double, mode: String): Loaded<RouteResult> =
+        get("/v1/route", mapOf("listing" to listingId, "fromLng" to lng.toString(), "fromLat" to lat.toString(), "mode" to mode), RouteResult.serializer(), "route|$listingId|$lng|$lat|$mode")
 
     suspend fun compare(ids: List<String>): Loaded<CompareResponse> =
         get("/v1/compare", mapOf("ids" to ids.joinToString(",")), CompareResponse.serializer(), "compare|${ids.sorted()}")

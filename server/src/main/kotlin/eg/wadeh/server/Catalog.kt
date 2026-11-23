@@ -147,4 +147,32 @@ class Catalog(private val db: Db, private val env: String, private val clock: ()
             isTestData = rs.getBoolean("is_test"), changeCount = rs.getInt("changes"),
         )
     }
+
+    fun coverage(): Coverage = db.read {
+        val rows = list("""
+            SELECT loc.name_en, loc.name_ar,
+              count(DISTINCT p.id) projects,
+              count(DISTINCT p.id) FILTER (WHERE p.publication_rights='full') rights,
+              count(DISTINCT ph.id) phases,
+              count(DISTINCT u.id) FILTER (WHERE u.unit_code IS NOT NULL) units,
+              count(DISTINCT l.id) FILTER (WHERE l.publication='published') offers,
+              count(DISTINCT l.id) FILTER (WHERE l.publication='published' AND l.last_confirmed_at >= now() - make_interval(days => s.refresh_target_days)) fresh,
+              count(DISTINCT l.id) FILTER (WHERE l.publication='published' AND (l.last_confirmed_at IS NULL OR l.last_confirmed_at < now() - make_interval(days => s.refresh_target_days))) stale,
+              count(DISTINCT p.id) FILTER (WHERE EXISTS (SELECT 1 FROM entrance e WHERE e.project_id=p.id AND e.verified_at IS NOT NULL)) gates,
+              bool_and(coalesce(dev.is_test, true)) test_only
+            FROM locality loc
+            LEFT JOIN project p ON p.locality_id=loc.id
+            LEFT JOIN organization dev ON dev.id=p.developer_org_id
+            LEFT JOIN phase ph ON ph.project_id=p.id
+            LEFT JOIN unit u ON u.project_id=p.id
+            LEFT JOIN listing l ON l.unit_id=u.id
+            LEFT JOIN organization s ON s.id=l.seller_org_id
+            WHERE loc.kind IN ('city','district','neighbourhood')
+            GROUP BY loc.id, loc.name_en, loc.name_ar ORDER BY offers DESC, loc.name_en""") {
+            CoverageRow(L10n(it.getString(1), it.getString(2)), it.getInt(3), it.getInt(4), it.getInt(5), it.getInt(6), it.getInt(7), it.getInt(8), it.getInt(9), it.getInt(10), it.getBoolean(11))
+        }
+        Coverage(clock().toString(), L10n(
+            "Counts of what we hold, not a share of the market. No reliable register of all Egyptian projects is available to us, so we do not publish a percentage.",
+            "هذه أعداد ما لدينا وليست نسبة من السوق. لا يتوفر لدينا سجل موثوق لكل المشروعات في مصر، لذلك لا ننشر نسبة مئوية."), rows, "/v1/coverage/requests")
+    }
 }

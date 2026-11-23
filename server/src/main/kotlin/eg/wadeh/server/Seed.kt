@@ -69,6 +69,13 @@ object Seed {
             }
             project(PROJECT_GARDENS, TEST_SUPPLIER, NEW_CAIRO, "TST-GARDENS", "Test Gardens (synthetic)", "حدائق الاختبار (اصطناعي)", listOf("Test Gardens", "حدائق الاختبار"), 31.4912, 30.0181)
             project(PROJECT_HEIGHTS, TEST_SUPPLIER, ZAYED, "TST-HEIGHTS", "Sample Heights (synthetic)", "مرتفعات العيّنة (اصطناعي)", listOf("Sample Heights"), 30.9812, 30.0469)
+            // Synthetic gate for the synthetic project (placed on a real public road near the synthetic pin; NOT a real entrance).
+            exec("""INSERT INTO entrance(id, project_id, name_en, name_ar, kind, modes, node_id, geom, conditions_en, conditions_ar, source, observed_at)
+                    SELECT '00000000-0000-4000-8000-000000000301', ?, 'Visitor gate (synthetic)', 'بوابة الزوار (اصطناعي)', 'visitor', ARRAY['car','foot'],
+                           n.id, n.geom, 'Synthetic test gate: show ID at security (example condition)', 'بوابة اختبار اصطناعية: إظهار الهوية للأمن (مثال)', 'seed:synthetic', now()
+                    FROM road_node n WHERE EXISTS (SELECT 1 FROM road_edge e WHERE e.source=n.id AND e.car_cost>=0 AND e.car_reverse_cost>=0 AND e.highway IN ('residential','tertiary','unclassified'))
+                    ORDER BY n.geom <-> ST_SetSRID(ST_MakePoint(31.4912,30.0181),4326) LIMIT 1
+                    ON CONFLICT (id) DO UPDATE SET node_id=EXCLUDED.node_id, geom=EXCLUDED.geom""", PROJECT_GARDENS)
             project(PROJECT_RIVER, TEST_DEVELOPER_B, NAC, "TST-RIVER", "Fixture River (synthetic)", "نهر التجربة (اصطناعي)", listOf("Fixture River"), 31.7420, 30.0090)
         }
     }

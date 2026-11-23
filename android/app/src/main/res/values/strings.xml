@@ -139,4 +139,32 @@
     <string name="private_note_hint">Only on this phone. Never shared.</string>
     <plurals name="changes_since_seen"><item quantity="one">%1$s change since you looked</item><item quantity="other">%1$s changes since you looked</item></plurals>
     <plurals name="homes_count"><item quantity="one">%1$s home</item><item quantity="other">%1$s homes</item></plurals>
+    <string name="getting_there">Getting there</string>
+    <string name="getting_there_privacy">Pick a public landmark. Your starting point is used for this route only and is not saved by Wadeh.</string>
+    <string name="choose_starting_point">Choose a starting point</string>
+    <string name="mode_car">Car</string>
+    <string name="mode_foot">Walking</string>
+    <string name="route_to_gate">To: %1$s</string>
+    <string name="route_summary">%1$s m · about %2$s min</string>
+    <string name="traffic_unavailable">Estimate without traffic. Live and typical traffic are not available.</string>
+    <string name="traffic_live">Includes live traffic.</string>
+    <string name="unnamed_road">Unnamed road</string>
+    <string name="meters">%1$s m</string>
+    <string name="straight_line_only">Straight-line distance only: %1$s m. No travel time is claimed.</string>
+    <string name="map_data_as_of">map data as of %1$s</string>
+    <string name="road_footway">Footpath</string>
+    <string name="road_pedestrian">Pedestrian street</string>
+    <string name="road_steps">Steps</string>
+    <string name="road_path">Path</string>
+    <string name="road_service">Service road</string>
+    <string name="road_primary_link">Ramp</string>
+    <string name="road_secondary_link">Ramp</string>
+    <string name="road_tertiary_link">Ramp</string>
+    <string name="road_trunk_link">Ramp</string>
+    <string name="road_motorway_link">Ramp</string>
+    <string name="road_residential">Residential street</string>
+    <string name="road_unclassified">Local road</string>
+    <string name="road_tertiary">Local main road</string>
+    <string name="road_secondary">Main road</string>
+    <string name="road_primary">Major road</string>
 </resources>

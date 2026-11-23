@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC test geography (not a real place). Divided road with one-way carriageways; compound south of it.
+     North fence gate is nearest to the origin but LOCKED; visitor gate is on an east service road.
+     No pedestrian crossing exists; a proposed footbridge is recorded but must not be routed. -->
+<osm version="0.6" generator="wadeh-fixture" timestamp="2026-11-01T00:00:00Z">
+  <node id="-1" lat="30.0030" lon="31.8030"/>                                  <!-- O origin street -->
+  <node id="-10" lat="30.0020" lon="31.8060"/><node id="-11" lat="30.0020" lon="31.8040"/>
+  <node id="-12" lat="30.0020" lon="31.8030"/><node id="-13" lat="30.0020" lon="31.8020"/><node id="-14" lat="30.0020" lon="31.8000"/>
+  <node id="-20" lat="30.0018" lon="31.8000"/><node id="-21" lat="30.0018" lon="31.8020"/>
+  <node id="-22" lat="30.0018" lon="31.8030"/><node id="-23" lat="30.0018" lon="31.8040"/><node id="-24" lat="30.0018" lon="31.8060"/>
+  <node id="-30" lat="30.0015" lon="31.8030"><tag k="barrier" v="gate"/><tag k="locked" v="yes"/><tag k="name:en" v="North Fence Gate (synthetic)"/><tag k="name:ar" v="بوابة السور الشمالي (اصطناعي)"/></node>
+  <node id="-40" lat="29.9995" lon="31.8060"/>
+  <node id="-41" lat="29.9995" lon="31.8050"><tag k="barrier" v="gate"/><tag k="name:en" v="Visitor Gate (synthetic)"/><tag k="name:ar" v="بوابة الزوار (اصطناعي)"/></node>
+  <way id="-100"><nd ref="-1"/><nd ref="-12"/><tag k="highway" v="residential"/><tag k="name:en" v="Origin Street"/><tag k="name:ar" v="شارع البداية"/></way>
+  <way id="-101"><nd ref="-10"/><nd ref="-11"/><nd ref="-12"/><nd ref="-13"/><nd ref="-14"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/><tag k="name:en" v="Divided Road (westbound)"/><tag k="name:ar" v="الطريق المزدوج (اتجاه الغرب)"/></way>
+  <way id="-102"><nd ref="-20"/><nd ref="-21"/><nd ref="-22"/><nd ref="-23"/><nd ref="-24"/><tag k="highway" v="primary"/><tag k="oneway" v="yes"/><tag k="name:en" v="Divided Road (eastbound)"/><tag k="name:ar" v="الطريق المزدوج (اتجاه الشرق)"/></way>
+  <way id="-103"><nd ref="-14"/><nd ref="-20"/><tag k="highway" v="primary_link"/><tag k="oneway" v="yes"/><tag k="foot" v="no"/><tag k="name:en" v="West U-turn"/><tag k="name:ar" v="دوران الغرب"/></way>
+  <way id="-104"><nd ref="-24"/><nd ref="-10"/><tag k="highway" v="primary_link"/><tag k="oneway" v="yes"/><tag k="foot" v="no"/><tag k="name:en" v="East U-turn"/><tag k="name:ar" v="دوران الشرق"/></way>
+  <way id="-105"><nd ref="-22"/><nd ref="-30"/><tag k="highway" v="service"/></way>
+  <way id="-106"><nd ref="-24"/><nd ref="-40"/><nd ref="-41"/><tag k="highway" v="service"/><tag k="name:en" v="Visitor Service Road"/><tag k="name:ar" v="طريق خدمة الزوار"/></way>
+  <way id="-107"><nd ref="-12"/><nd ref="-22"/><tag k="highway" v="proposed"/><tag k="proposed" v="footway"/><tag k="name:en" v="Proposed Footbridge"/></way>
+</osm>

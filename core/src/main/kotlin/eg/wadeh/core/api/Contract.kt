@@ -119,3 +119,48 @@ data class CreateShareResponse(val token: String, val ownerSecret: String, val u
 
 @Serializable
 data class SharedComparison(val token: String, val compare: CompareResponse, val expiresAt: String, val missing: Int)
+
+@Serializable
+data class EntranceInfo(val id: String, val name: L10n, val kind: String, val locked: Boolean, val conditions: L10n?, val source: String, val observedAt: String?, val verifiedAt: String?, val lat: Double, val lng: Double)
+
+@Serializable
+data class RouteStep(val road: L10n?, val distanceM: Int, val highway: String)
+
+@Serializable
+data class MissingLeg(val code: String, val from: String, val to: String, val straightLineM: Int, val explanation: L10n)
+
+/**
+ * A route to a specific entrance. durationS is a FREE-FLOW estimate from road-class speeds unless trafficStatus says otherwise.
+ * When no connected path exists, route is null and missing explains the gap; we never invent a complete travel time.
+ */
+@Serializable
+data class RouteResult(
+    val mode: String,
+    val entrance: EntranceInfo?,
+    val distanceM: Int?,
+    val durationS: Int?,
+    val approachM: Int,                 // straight-line distance from the given origin to the first graph node
+    val steps: List<RouteStep>,
+    val path: List<List<Double>>,       // [lng, lat]
+    val trafficStatus: String,          // unavailable | typical | live
+    val assumptions: List<L10n>,
+    val missing: List<MissingLeg>,
+    val candidatesConsidered: Int,
+    val excludedEntrances: List<String>,
+    val dataAsOf: String?,
+    val attribution: String,
+)
+
+@Serializable
+data class Landmark(val id: String, val name: L10n, val kind: String, val lat: Double, val lng: Double, val source: String)
+
+/** Operational coverage for one locality. There is no reliable national denominator, so we report counts and say so. */
+@Serializable
+data class CoverageRow(
+    val locality: L10n, val projectsDiscovered: Int, val projectsWithPublicationRights: Int, val phases: Int,
+    val identifiableUnits: Int, val currentOffers: Int, val confirmedWithinTarget: Int, val pastRefreshTarget: Int,
+    val withVerifiedEntrance: Int, val testDataOnly: Boolean,
+)
+
+@Serializable
+data class Coverage(val asOf: String, val denominatorNote: L10n, val rows: List<CoverageRow>, val requestMissingUrl: String)

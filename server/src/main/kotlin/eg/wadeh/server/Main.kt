@@ -43,6 +43,7 @@ class App(val cfg: Config, val db: Db, val migration: String?) {
     val imports = ImportService(db)
     val sessions = Sessions(db)
     val sharing = Sharing(db, catalog, cfg.publicBase)
+    val router = eg.wadeh.server.routing.Router(db)
 }
 
 val apiJson = Json { encodeDefaults = true; explicitNulls = true; ignoreUnknownKeys = true; classDiscriminator = "type" }
@@ -54,6 +55,7 @@ fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "migrate" -> { println("Migrated to $migration"); return }
         "seed" -> { Seed.run(db, cfg.env); println("Seeded (${cfg.env})"); return }
+        "load-osm" -> { val r = eg.wadeh.server.routing.OsmLoader.load(db, java.io.File(args[1]).inputStream(), args[2]); println("Loaded ${r.nodes} nodes, ${r.edges} edges, OSM base ${r.osmBase}"); return }
     }
     if (cfg.env != "prod" && System.getenv("SEED_ON_START") == "1") Seed.run(db, cfg.env)
     val app = App(cfg, db, migration)
@@ -126,6 +128,27 @@ fun Route.publicApi(app: App) {
         val r = call.receive<ChangesRequest>()
         require(r.ids.size <= 100) { "At most 100 ids" }
         call.respond(app.catalog.changesFor(r.ids.map(UUID::fromString), r.since?.let(Instant::parse)))
+    }
+    get("/route") {
+        val p = call.request.queryParameters
+        val lng = p["fromLng"]?.toDoubleOrNull(); val lat = p["fromLat"]?.toDoubleOrNull()
+        require(lng != null && lat != null) { "fromLng and fromLat are required" }
+        val mode = p["mode"] ?: "car"
+        val candidates = when {
+            p["listing"] != null -> app.db.read { one("SELECT u.project_id FROM listing l JOIN unit u ON u.id=l.unit_id WHERE l.id=?", UUID.fromString(p["listing"])) { it.uuid("project_id") } }
+                ?.let { app.router.entrances(projectId = it) } ?: emptyList()
+            p["place"] != null -> app.router.entrances(placeKey = p["place"])
+            else -> throw IllegalArgumentException("listing or place is required")
+        }
+        // Origins are personal: never logged (CallLogging omits query strings) and never stored.
+        call.response.header(HttpHeaders.CacheControl, "no-store")
+        call.respond(app.router.route(lng, lat, mode, candidates))
+    }
+    get("/coverage") { call.respond(app.catalog.coverage()) }
+    get("/landmarks") {
+        val q = call.request.queryParameters["q"]?.let { "%" + eg.wadeh.core.ArabicText.normalize(it) + "%" } ?: "%"
+        call.respond(app.db.read { list("SELECT id,name_en,name_ar,kind,ST_Y(geom) lat,ST_X(geom) lng,source FROM landmark WHERE search_norm LIKE ? ORDER BY name_en LIMIT 20", q) {
+            eg.wadeh.core.api.Landmark(it.uuid("id").toString(), eg.wadeh.core.api.L10n(it.getString("name_en"), it.getString("name_ar")), it.getString("kind"), it.getDouble("lat"), it.getDouble("lng"), it.getString("source")) } })
     }
     post("/cashflow") {
         val r = call.receive<CashflowRequest>()

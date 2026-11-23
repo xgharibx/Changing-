@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Route evidence</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>html,body,#m{margin:0;height:100%;font-family:system-ui}#c{position:absolute;top:8px;left:8px;background:#fff;padding:8px 10px;border-radius:8px;font-size:13px;max-width:330px;box-shadow:0 1px 4px #0003}</style></head>
+<body><div id="m"></div><div id="c"></div><script>
+const q=new URLSearchParams(location.search); const routes=JSON.parse(decodeURIComponent(q.get('r')));
+const m=new maplibregl.Map({container:'m',style:'https://tiles.openfreemap.org/styles/liberty',center:[31.4985,30.0205],zoom:15.6,attributionControl:{compact:false},preserveDrawingBuffer:true});
+m.on('load',()=>{routes.forEach((r,i)=>{const id='r'+i;m.addSource(id,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:r.path}}});
+ m.addLayer({id,type:'line',source:id,paint:{'line-color':i?'#b45309':'#0f5c45','line-width':i?4:6,'line-dasharray':i?[1,1]:[1,0]}});
+ new maplibregl.Marker({color:i?'#b45309':'#0f5c45'}).setLngLat([r.entrance.lng,r.entrance.lat]).addTo(m);});
+ new maplibregl.Marker({color:'#334'}).setLngLat([31.494802,30.020202]).addTo(m);
+ document.getElementById('c').innerHTML=routes.map((r,i)=>`<b style="color:${i?'#b45309':'#0f5c45'}">${r.mode==='car'?'Car':'Walk'}</b> → ${r.entrance.name.en}: ${r.distanceM} m, ~${Math.round(r.durationS/60)} min (${r.trafficStatus==='unavailable'?'free-flow, no traffic data':r.trafficStatus})`).join('<br>')+'<br>Origin: Point 90 Mall (approx. centroid). Data: OSM extract 23 Nov 2026. Needs field check.';
+ m.once('idle',()=>{document.title='ready'});});
+</script></body></html>
