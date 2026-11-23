@@ -104,6 +104,28 @@ class Repository(context: Context, private val baseUrl: String = BuildConfig.API
     suspend fun createShare(ids: List<String>, lang: String): CreateShareResponse =
         send("POST", "/v1/shares", wireJson.encodeToString(CreateShareRequest.serializer(), CreateShareRequest(ids, lang)), CreateShareResponse.serializer())!!
 
+    sealed interface InquiryOutcome {
+        data class Created(val s: eg.wadeh.core.api.InquiryStatus) : InquiryOutcome
+        data class Changed(val c: eg.wadeh.core.api.OfferChanged) : InquiryOutcome
+        data class Refused(val code: Int, val message: String) : InquiryOutcome
+    }
+
+    suspend fun createInquiry(r: eg.wadeh.core.api.CreateInquiryRequest): InquiryOutcome = withContext(Dispatchers.IO) {
+        val req = Request.Builder().url("$baseUrl/v1/inquiries").header("X-Request-Id", UUID.randomUUID().toString())
+            .post(wireJson.encodeToString(eg.wadeh.core.api.CreateInquiryRequest.serializer(), r).toRequestBody("application/json".toMediaType())).build()
+        http.newCall(req).execute().use { res ->
+            val text = res.body?.string().orEmpty()
+            when {
+                res.code == 201 -> InquiryOutcome.Created(wireJson.decodeFromString(eg.wadeh.core.api.InquiryStatus.serializer(), text))
+                res.code == 409 && text.contains("\"offer_changed\"") -> InquiryOutcome.Changed(wireJson.decodeFromString(eg.wadeh.core.api.OfferChanged.serializer(), text))
+                else -> InquiryOutcome.Refused(res.code, runCatching { wireJson.decodeFromString(eg.wadeh.core.api.ApiError.serializer(), text).message }.getOrDefault("HTTP ${res.code}"))
+            }
+        }
+    }
+
+    suspend fun inquiryStatus(id: String, token: String): eg.wadeh.core.api.InquiryStatus? =
+        runCatching { send("GET", "/v1/inquiries/$id", null, eg.wadeh.core.api.InquiryStatus.serializer(), mapOf("X-Buyer-Token" to token)) }.getOrNull()
+
     suspend fun revokeShare(token: String, secret: String) { send<Unit>("DELETE", "/v1/shares/$token", null, null, mapOf("X-Owner-Secret" to secret)) }
 }
 

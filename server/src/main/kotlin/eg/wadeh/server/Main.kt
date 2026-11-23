@@ -44,6 +44,9 @@ class App(val cfg: Config, val db: Db, val migration: String?) {
     val sessions = Sessions(db)
     val sharing = Sharing(db, catalog, cfg.publicBase)
     val router = eg.wadeh.server.routing.Router(db)
+    // Lead handoff stays OFF in production until the PDPC licence decision (release register L-01) sets LEADS_ENABLED=true.
+    val leadsEnabled = (System.getenv("LEADS_ENABLED") ?: if (cfg.env == "prod") "false" else "true") == "true"
+    val inquiries = Inquiries(db, catalog, leadsEnabled)
 }
 
 val apiJson = Json { encodeDefaults = true; explicitNulls = true; ignoreUnknownKeys = true; classDiscriminator = "type" }
@@ -82,6 +85,15 @@ fun Application.module(app: App) {
     install(StatusPages) {
         exception<ImportException> { call, e ->
             call.respond(if (e.code == "forbidden") HttpStatusCode.Forbidden else HttpStatusCode.UnprocessableEntity, ApiError(e.code, e.message ?: "", call.callId))
+        }
+        exception<InquiryException> { call, e ->
+            when (e.code) {
+                "offer_changed" -> call.respond(HttpStatusCode.Conflict, e.body as eg.wadeh.core.api.OfferChanged)
+                "leads_disabled" -> call.respond(HttpStatusCode.ServiceUnavailable, ApiError(e.code, e.message ?: "", call.callId))
+                "forbidden" -> call.respond(HttpStatusCode.Forbidden, ApiError(e.code, e.message ?: "", call.callId))
+                "not_found" -> call.respond(HttpStatusCode.NotFound, ApiError(e.code, e.message ?: "", call.callId))
+                else -> call.respond(HttpStatusCode.Conflict, ApiError(e.code, e.message ?: "", call.callId))
+            }
         }
         exception<IllegalArgumentException> { call, e -> call.respond(HttpStatusCode.BadRequest, ApiError("bad_request", e.message ?: "Bad request", call.callId)) }
         exception<Throwable> { call, e ->
@@ -143,6 +155,15 @@ fun Route.publicApi(app: App) {
         // Origins are personal: never logged (CallLogging omits query strings) and never stored.
         call.response.header(HttpHeaders.CacheControl, "no-store")
         call.respond(app.router.route(lng, lat, mode, candidates))
+    }
+    post("/inquiries") { call.respond(HttpStatusCode.Created, app.inquiries.create(call.receive())) }
+    get("/inquiries/{id}") {
+        val st = app.inquiries.buyerStatus(UUID.fromString(call.parameters["id"]), call.request.headers["X-Buyer-Token"].orEmpty())
+            ?: return@get call.respond(HttpStatusCode.NotFound, ApiError("not_found", "No such request", call.callId))
+        call.response.header(HttpHeaders.CacheControl, "no-store"); call.respond(st)
+    }
+    post("/inquiries/{id}/cancel") {
+        app.inquiries.cancelByBuyer(UUID.fromString(call.parameters["id"]), call.request.headers["X-Buyer-Token"].orEmpty()); call.respond(HttpStatusCode.NoContent)
     }
     get("/coverage") { call.respond(app.catalog.coverage()) }
     get("/landmarks") {

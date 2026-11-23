@@ -35,7 +35,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class DetailViewModel(private val repo: Repository, val id: String, val store: eg.wadeh.app.data.SavedStore) : ViewModel() {
+class DetailViewModel(val repo: Repository, val id: String, val store: eg.wadeh.app.data.SavedStore) : ViewModel() {
+    val inquiry = MutableStateFlow<eg.wadeh.core.api.InquiryStatus?>(null)
+    fun loadInquiry() { store.inquiryFor(id)?.let { o -> viewModelScope.launch { inquiry.value = repo.inquiryStatus(o.id, o.token) } } }
     private val _state = MutableStateFlow<LoadState<ListingDetail>>(LoadState.Loading)
     val state: StateFlow<LoadState<ListingDetail>> = _state
     val route = MutableStateFlow<LoadState<eg.wadeh.core.api.RouteResult>?>(null)
@@ -61,7 +63,20 @@ class DetailViewModel(private val repo: Repository, val id: String, val store: e
 fun DetailScreen(vm: DetailViewModel, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val state by vm.state.collectAsState()
     val arabic = isArabic()
-    Scaffold(topBar = {
+    var requesting by remember { mutableStateOf(false) }
+    val inquiry by vm.inquiry.collectAsState()
+    LaunchedEffect(vm.id) { vm.loadInquiry() }
+    val readyCard = (state as? LoadState.Ready)?.value?.data?.card
+    if (requesting && readyCard != null) ViewingRequestSheet(readyCard, vm.repo, vm.store) { requesting = false; vm.loadInquiry() }
+    Scaffold(bottomBar = {
+        // Persistent action lives in the bottom bar, so content is padded above it and never covers the last fee.
+        if (readyCard != null && readyCard.availability in setOf("AVAILABLE", "RELEASED")) Surface(tonalElevation = 3.dp) {
+            Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp)) {
+                inquiry?.let { Text(stringResource(R.string.viewing_status, stringByName("inquiry", it.status)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.testTag("inquiry_status")) }
+                Button(onClick = { requesting = true }, modifier = Modifier.fillMaxWidth().testTag("request_viewing")) { Text(stringResource(R.string.request_viewing)) }
+            }
+        }
+    }, topBar = {
         TopAppBar(title = {
             val t = (state as? LoadState.Ready)?.value?.data?.card?.project?.pick(arabic) ?: ""
             Text(t, maxLines = 1)

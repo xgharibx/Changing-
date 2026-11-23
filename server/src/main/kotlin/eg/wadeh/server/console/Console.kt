@@ -60,7 +60,8 @@ private fun HTML.page(app: App, title: String, who: Principal?, flash: Pair<Stri
             if (who != null) {
                 a("/console/imports/new") { +"New import" }
                 a("/console/template.csv") { +"Template" }
-                span { style = "margin-inline-start:auto"; +"${who.displayName} (${who.platformRole ?: who.memberships.joinToString { it.role }})" }
+                a("/console/inbox") { +"Viewing requests" }
+                span { style = "margin-inline-start:auto"; +"${who.displayName} (${who.platformRole ?: who.memberships.map { it.role }.distinct().joinToString()})" }
                 form(action = "/console/logout", method = FormMethod.post) { style = "margin:0"; button(classes = "secondary") { +"Sign out" } }
             }
         }
@@ -150,6 +151,43 @@ fun Route.consoleRoutes(app: App) {
                     } }
                 }
             } }
+        }
+
+        get("/inbox") {
+            val who = call.principal(app) ?: return@get call.respondRedirect("/console/login")
+            val rows = app.inquiries.inbox(who)
+            call.respondHtml { page(app, "Viewing requests", who, call.parameters["err"]?.let { "bad" to it } ?: call.parameters["ok"]?.let { "ok" to it }) {
+                h1 { +"Viewing requests" }
+                p("muted") { +"Only requests addressed to your organisation are shown. Contact details are shared because the buyer consented (viewing-consent-1) and are erased after the retention period." }
+                table {
+                    thead { tr { th { +"Received" }; th { +"Unit" }; th { +"Requested slot (Cairo)" }; th { +"Buyer" }; th { +"Channel" }; th { +"Status" }; th { +"Next action" } } }
+                    tbody { rows.forEach { r ->
+                        tr {
+                            td { +r["created"].toString().take(16).replace('T', ' ') }; td { +"${r["project"]} ${r["unit"]}" }
+                            td { +java.time.ZonedDateTime.ofInstant(r["slot"] as java.time.Instant, java.time.ZoneId.of("Africa/Cairo")).toString().take(16).replace('T', ' ') }
+                            td { attributes["dir"] = "auto"; +"${r["name"]} · ${r["phone"]}" }; td { +r["channel"].toString() }; td { span("pill") { +r["status"].toString() } }
+                            td {
+                                val id = r["id"]
+                                val next = app.inquiries.nextActions(r["status"].toString())
+                                if (next.isEmpty()) span("muted") { +"No action needed" }
+                                next.filter { it != "propose" }.forEach { act ->
+                                    form(action = "/console/inbox/$id/$act", method = FormMethod.post) { style = "display:inline"; button(classes = "secondary") { +act } }
+                                }
+                                if ("propose" in next) form(action = "/console/inbox/$id/propose", method = FormMethod.post) { style = "display:inline"
+                                    input(InputType.dateTimeLocal, name = "when") { required = true }; button(classes = "secondary") { +"propose time" } }
+                            }
+                        }
+                    } }
+                }
+            } }
+        }
+        post("/inbox/{id}/{action}") {
+            val who = call.principal(app) ?: return@post call.respondRedirect("/console/login")
+            if (!call.sameOrigin()) return@post call.respond(HttpStatusCode.Forbidden)
+            val f = call.receiveParameters()
+            val proposed = f["when"]?.takeIf { it.isNotBlank() }?.let { java.time.LocalDateTime.parse(it).atZone(java.time.ZoneId.of("Africa/Cairo")).toInstant() }
+            try { app.inquiries.partnerAction(who, UUID.fromString(call.parameters["id"]), call.parameters["action"]!!, proposed); call.respondRedirect("/console/inbox?ok=Updated") }
+            catch (e: Exception) { call.respondRedirect("/console/inbox?err=" + (e.message ?: "Failed").encodeURLParameter()) }
         }
 
         get("/imports/new") {

@@ -26,7 +26,10 @@ data class SavedHome(
 data class OwnedShare(val token: String, val ownerSecret: String, val url: String, val listingIds: List<String>, val createdAt: String, val expiresAt: String, val revoked: Boolean = false)
 
 @Serializable
-private data class SavedFile(val schema: Int = 1, val homes: List<SavedHome> = emptyList(), val shares: List<OwnedShare> = emptyList())
+data class OwnedInquiry(val id: String, val token: String, val listingId: String, val createdAt: String)
+
+@Serializable
+private data class SavedFile(val schema: Int = 1, val homes: List<SavedHome> = emptyList(), val shares: List<OwnedShare> = emptyList(), val inquiries: List<OwnedInquiry> = emptyList())
 
 class SavedStore(context: Context) {
     private val file = File(File(context.filesDir, "saved").apply { mkdirs() }, "saved.json")
@@ -66,6 +69,8 @@ class SavedStore(context: Context) {
         write(f.copy(homes = f.homes.map { if (it.listingId == id) it.copy(note = note.take(2000)) else it }))
     }
 
+    fun inquiryFor(listingId: String) = _state.value.inquiries.lastOrNull { it.listingId == listingId }
+    fun addInquiry(i: OwnedInquiry) { val f = _state.value; write(f.copy(inquiries = f.inquiries + i)) }
     fun addShare(s: OwnedShare) { val f = _state.value; write(f.copy(shares = f.shares + s)) }
     fun markRevoked(token: String) { val f = _state.value; write(f.copy(shares = f.shares.map { if (it.token == token) it.copy(revoked = true) else it })) }
 }

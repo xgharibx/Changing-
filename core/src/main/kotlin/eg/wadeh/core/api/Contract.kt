@@ -164,3 +164,32 @@ data class CoverageRow(
 
 @Serializable
 data class Coverage(val asOf: String, val denominatorNote: L10n, val rows: List<CoverageRow>, val requestMissingUrl: String)
+
+const val CONSENT_TEXT_VERSION = "viewing-consent-1"
+
+@Serializable
+data class CreateInquiryRequest(
+    val idempotencyKey: String,
+    val listingId: String,
+    val offerVersionIdSeen: String,
+    val channel: String,               // in_app | phone_call | whatsapp
+    val name: String,
+    val phone: String,
+    val consentShareContact: Boolean,
+    val consentTextVersion: String,
+    val slotStart: String,             // ISO instant
+    val lang: String = "ar",
+)
+
+@Serializable
+data class InquiryStatus(
+    val id: String, val status: String, val recipient: L10n, val slotStart: String, val proposedSlot: String?,
+    val alternatives: List<String>, val timeline: List<InquiryEvent>, val buyerToken: String? = null,
+)
+
+@Serializable
+data class InquiryEvent(val status: String, val at: String, val note: String?)
+
+/** 409 body when the offer changed since the buyer last looked. The buyer decides whether to continue. */
+@Serializable
+data class OfferChanged(val code: String, val current: ListingCard, val changes: List<ChangeItem>)

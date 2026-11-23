@@ -8,7 +8,7 @@ object TestDb {
 
     fun reset() {
         db.tx {
-            exec("""TRUNCATE change_event, availability_observation, offer_version, payment_plan_version, source_record, import_batch, listing,
+            exec("""TRUNCATE outbox, inquiry_event, inquiry, share_link, change_event, availability_observation, offer_version, payment_plan_version, source_record, import_batch, listing,
                     unit_match_review, unit, building, phase, project, locality, membership, session_token, audit_log, app_user, organization CASCADE""")
         }
         Seed.run(db, "test")
