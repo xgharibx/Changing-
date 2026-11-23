@@ -31,6 +31,7 @@ android {
             // 10.0.2.2 is the emulator's alias for the host machine.
             buildConfigField("String", "API_BASE_URL", "\"${System.getenv("WADEH_DEV_API") ?: "http://10.0.2.2:8080"}\"")
             buildConfigField("String", "ENV_NAME", "\"DEV\"")
+            buildConfigField("int", "NETWORK_TIMEOUT_S", (System.getenv("WADEH_DEV_TIMEOUT_S") ?: "20"))
             resValue("string", "app_name", "Wadeh DEV")
         }
         create("staging") {
@@ -39,12 +40,14 @@ android {
             versionNameSuffix = "-staging"
             buildConfigField("String", "API_BASE_URL", "\"${System.getenv("WADEH_STAGING_API") ?: "https://staging-api.wadeh.invalid"}\"")
             buildConfigField("String", "ENV_NAME", "\"STAGING\"")
+            buildConfigField("int", "NETWORK_TIMEOUT_S", "20")
             resValue("string", "app_name", "Wadeh STAGING")
         }
         create("prod") {
             dimension = "env"
             buildConfigField("String", "API_BASE_URL", "\"${System.getenv("WADEH_PROD_API") ?: "https://api.wadeh.invalid"}\"")
             buildConfigField("String", "ENV_NAME", "\"\"")
+            buildConfigField("int", "NETWORK_TIMEOUT_S", "20")
             resValue("string", "app_name", "Wadeh")
         }
     }

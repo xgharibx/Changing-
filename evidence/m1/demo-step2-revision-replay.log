@@ -1,0 +1,6 @@
+2) staged revision 6acc9a70-bf44-4d10-9563-96f2b16d66e2 -> published Published. 1 consumer-visible changes.
+3) replay of the same revision -> http://localhost:8080/console/imports/6acc9a70-bf44-4d10-9563-96f2b16d66e2?dup=1
+4) replay under a new filename -> http://localhost:8080/console/imports/6acc9a70-bf44-4d10-9563-96f2b16d66e2?dup=1
+5) B12-0304: version 2 | changes visible to buyer: 1
+    price_changed list_price 800000000 -> 840000000 like-for-like: False
+listing id: 94b041f1-1438-4cde-82bc-2f9c34e2e61d

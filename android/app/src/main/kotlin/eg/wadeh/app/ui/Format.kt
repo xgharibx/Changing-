@@ -32,6 +32,7 @@ private fun locale(arabic: Boolean): Locale = if (arabic) Locale.forLanguageTag(
 
 fun date(iso: String?, arabic: Boolean): String {
     if (iso == null) return "—"
+    if (iso == "ready") return if (arabic) "استلام فوري" else "ready to move"
     return runCatching {
         when {
             Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(iso) -> LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("d MMM yyyy", locale(arabic)))
@@ -39,13 +40,13 @@ fun date(iso: String?, arabic: Boolean): String {
                 val q = iso.last().digitToInt(); val y = iso.take(4)
                 if (arabic) "الربع ${listOf("الأول", "الثاني", "الثالث", "الرابع")[q - 1]} ${Digits.toArabicIndic(y)}" else "Q$q $y"
             }
-            iso.contains('T') -> Instant.parse(iso).atZone(CAIRO).format(DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", locale(arabic)))
+            iso.contains('T') -> Instant.parse(iso).atZone(CAIRO).format(DateTimeFormatter.ofPattern(if (arabic) "d MMM yyyy، HH:mm" else "d MMM yyyy, HH:mm", locale(arabic)))
             else -> PreciseDate.parseIso(iso).iso()
         }.let { if (arabic) Digits.toArabicIndic(it) else it }
     }.getOrDefault(iso)
 }
 
-fun dateTime(i: Instant, arabic: Boolean): String = i.atZone(CAIRO).format(DateTimeFormatter.ofPattern("d MMM, HH:mm", locale(arabic))).let { if (arabic) Digits.toArabicIndic(it) else it }
+fun dateTime(i: Instant, arabic: Boolean): String = i.atZone(CAIRO).format(DateTimeFormatter.ofPattern(if (arabic) "d MMM، HH:mm" else "d MMM, HH:mm", locale(arabic))).let { if (arabic) Digits.toArabicIndic(it) else it }
 
 @Composable
 fun stringByName(prefix: String, key: String, fallback: String = key): String {

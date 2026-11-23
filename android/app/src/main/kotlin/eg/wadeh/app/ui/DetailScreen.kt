@@ -191,8 +191,10 @@ private fun ChangesSection(changes: List<ChangeItem>, currency: String, arabic: 
                     Icon(if (arabic) Icons.Outlined.ArrowBack else Icons.Outlined.ArrowForward, contentDescription = null, modifier = Modifier.padding(horizontal = 6.dp).size(16.dp))
                     Text(changeValue(ch, ch.newValue, currency, arabic), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
-                if (!ch.likeForLike) Text(stringResource(R.string.not_like_for_like) + (ch.note?.let { " — $it" } ?: ""), style = MaterialTheme.typography.labelSmall, color = st.warn)
-                else ch.note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = st.muted) }
+                if (!ch.likeForLike) {
+                    val why = ch.reasons.map { stringByName("reason", it) }
+                    Text(stringResource(R.string.not_like_for_like) + (if (why.isNotEmpty()) " — " + why.joinToString(if (arabic) "، " else ", ") else ""), style = MaterialTheme.typography.labelSmall, color = st.warn)
+                }
                 Text(listOfNotNull(ch.effectiveOn?.let { stringResource(R.string.effective_on, date(it, arabic)) }, stringResource(R.string.source_label, ch.source.pick(arabic))).joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall, color = st.muted)
             }

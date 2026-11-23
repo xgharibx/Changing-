@@ -107,4 +107,7 @@
     <plurals name="results_count"><item quantity="zero">لا عروض</item><item quantity="one">عرض واحد</item><item quantity="two">عرضان</item><item quantity="few">%1$s عروض</item><item quantity="many">%1$s عرضًا</item><item quantity="other">%1$s عرض</item></plurals>
     <plurals name="beds"><item quantity="zero">بدون غرف نوم</item><item quantity="one">غرفة نوم واحدة</item><item quantity="two">غرفتا نوم</item><item quantity="few">%1$s غرف نوم</item><item quantity="many">%1$s غرفة نوم</item><item quantity="other">%1$s غرفة نوم</item></plurals>
     <plurals name="changes_badge"><item quantity="zero">لا تغييرات</item><item quantity="one">تغيير واحد</item><item quantity="two">تغييران</item><item quantity="few">%1$s تغييرات</item><item quantity="many">%1$s تغييرًا</item><item quantity="other">%1$s تغيير</item></plurals>
+    <string name="reason_plan_changed">تغيّرت خطة السداد أيضًا</string>
+    <string name="reason_area_changed">تغيّرت المساحة أيضًا</string>
+    <string name="reason_currency_changed">تغيّرت العملة</string>
 </resources>

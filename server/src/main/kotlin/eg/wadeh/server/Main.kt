@@ -25,13 +25,14 @@ import org.slf4j.event.Level
 import java.time.Instant
 import java.util.UUID
 
-data class Config(val databaseUrl: String, val port: Int, val env: String, val version: String) {
+data class Config(val databaseUrl: String, val port: Int, val env: String, val version: String, val publicBase: String = "http://localhost:8080") {
     companion object {
         fun fromEnv() = Config(
             databaseUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/wadeh_dev?user=wadeh&password=wadeh_dev",
             port = System.getenv("PORT")?.toInt() ?: 8080,
             env = System.getenv("APP_ENV") ?: "dev",
             version = System.getenv("APP_VERSION") ?: "0.1.0-dev",
+            publicBase = System.getenv("PUBLIC_BASE_URL") ?: "http://localhost:8080",
         )
     }
 }
@@ -40,6 +41,7 @@ class App(val cfg: Config, val db: Db, val migration: String?) {
     val catalog = Catalog(db, cfg.env)
     val imports = ImportService(db)
     val sessions = Sessions(db)
+    val sharing = Sharing(db, catalog, cfg.publicBase)
 }
 
 val apiJson = Json { encodeDefaults = true; explicitNulls = true; ignoreUnknownKeys = true; classDiscriminator = "type" }
@@ -88,6 +90,7 @@ fun Application.module(app: App) {
         get("/") { call.respondRedirect("/console") }
         route("/v1") { publicApi(app) }
         consoleRoutes(app)
+        sharingRoutes(app, app.sharing)
     }
 }
 

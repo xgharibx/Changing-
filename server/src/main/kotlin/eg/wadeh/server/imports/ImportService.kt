@@ -276,10 +276,10 @@ class ImportService(private val db: Db, private val clock: () -> Instant = Insta
     }
 
     private fun event(tx: Tx, listingId: UUID, unitId: UUID, kind: String, field: String?, old: String?, new: String?, currency: String?, likeForLike: Boolean,
-                      effectiveOn: String?, batchId: UUID?, note: String?, dedupe: String, at: Instant) {
-        tx.exec("""INSERT INTO change_event(id,listing_id,unit_id,kind,field,old_value,new_value,currency,like_for_like,effective_on,recorded_at,batch_id,note,dedupe_key)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (dedupe_key) DO NOTHING""",
-            newId(), listingId, unitId, kind, field, old, new, currency, likeForLike, effectiveOn?.let { LocalDate.parse(it.take(10)) }, at, batchId, note, sha256Hex(dedupe))
+                      effectiveOn: String?, batchId: UUID?, note: String?, dedupe: String, at: Instant, reasons: List<String> = emptyList()) {
+        tx.exec("""INSERT INTO change_event(id,listing_id,unit_id,kind,field,old_value,new_value,currency,like_for_like,effective_on,recorded_at,batch_id,note,dedupe_key,reasons)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (dedupe_key) DO NOTHING""",
+            newId(), listingId, unitId, kind, field, old, new, currency, likeForLike, effectiveOn?.let { LocalDate.parse(it.take(10)) }, at, batchId, note, sha256Hex(dedupe), reasons.toTypedArray())
     }
 
     private fun ensurePhase(tx: Tx, projectId: UUID, code: String?): UUID? = code?.let { c ->
@@ -344,9 +344,13 @@ class ImportService(private val db: Db, private val clock: () -> Instant = Insta
             val likeForLike = !planChanged && !areaChanged && "currency" !in fields
             for (d in p.diff.filter { it.field in setOf("list_price", "cash_price", "monthly_rent") })
                 event(tx, lid, cur.unitId, "price_changed", d.field, d.old, d.new, row.currency, likeForLike, row.assertedOn, batchId,
-                    if (!likeForLike) "Not like-for-like: ${listOfNotNull(if (planChanged) "payment plan changed" else null, if (areaChanged) "area changed" else null).joinToString(", ")}" else null,
-                    "$lid|price|${d.field}|v$version", now)
-            if (planChanged) event(tx, lid, cur.unitId, "plan_changed", "payment_plan", d(p, "payment_plan")?.old, d(p, "payment_plan")?.new, row.currency, false, row.assertedOn, batchId, null, "$lid|plan|v$version", now)
+                    if (!likeForLike) "Payment plan ${if (planChanged) "changed too" else "unchanged"}${if (areaChanged) "; area changed" else ""}" else null,
+                    "$lid|price|${d.field}|v$version", now,
+                    reasons = listOfNotNull(if (planChanged) "plan_changed" else null, if (areaChanged) "area_changed" else null, if ("currency" in fields) "currency_changed" else null))
+            // One revision = one visible change. A plan change travels with the price change as its "not like-for-like" reason;
+            // it is a separate event only when no price moved.
+            val priceMoved = p.diff.any { it.field in setOf("list_price", "cash_price", "monthly_rent") }
+            if (planChanged && !priceMoved) event(tx, lid, cur.unitId, "plan_changed", "payment_plan", d(p, "payment_plan")?.old, d(p, "payment_plan")?.new, row.currency, false, row.assertedOn, batchId, "Payment terms changed; headline price unchanged", "$lid|plan|v$version", now)
             d(p, "handover")?.let { event(tx, lid, cur.unitId, "handover_changed", "handover", it.old, it.new, null, true, row.assertedOn, batchId, null, "$lid|handover|v$version", now) }
         }
         if (areaChanged) {

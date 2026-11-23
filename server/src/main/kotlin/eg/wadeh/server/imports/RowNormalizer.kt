@@ -138,11 +138,9 @@ object RowNormalizer {
         if (offerType == OfferType.RENT && rent == null && avail?.isOfferable == true) errors += "monthly_rent: required for an available rental"
 
         val handoverRaw = opt("handover")
-        val handover: PreciseDate? = when {
-            handoverRaw == null -> null
-            ArabicText.normalize(handoverRaw) in setOf("ready", "immediate", "فوري", "استلام فوري", "جاهز") -> asserted
-            else -> date("handover")
-        }
+        // "Ready to move" is a state, not a date: never derive it from the sheet date (that would fake a change on every new sheet).
+        val isReady = handoverRaw != null && ArabicText.normalize(handoverRaw) in setOf("ready", "immediate", "فوري", "استلام فوري", "جاهز", "جاهز للسكن")
+        val handover: PreciseDate? = if (handoverRaw == null || isReady) null else date("handover")
 
         // Payment plan
         var plan: PaymentPlan? = null
@@ -201,7 +199,7 @@ object RowNormalizer {
                 unitCode = unitCode, listingKey = opt("listing_id")?.let { Digits.toWestern(it).trim() } ?: unitCode,
                 unitType = unitType, bedrooms = bedrooms, bathrooms = bathrooms, areaM2 = area, areaBasis = basis,
                 floor = opt("floor")?.let(Digits::toWestern), finishing = fin, availability = avail, offerType = offerType, currency = currency,
-                listPriceMinor = listPrice, cashPriceMinor = cashPrice, monthlyRentMinor = rent, plan = plan, handover = handover?.iso(),
+                listPriceMinor = listPrice, cashPriceMinor = cashPrice, monthlyRentMinor = rent, plan = plan, handover = if (isReady) "ready" else handover?.iso(),
                 assertedOn = asserted.iso(), correction = correction, correctionReason = reason, notes = opt("notes"),
             ), emptyList(), warnings
         )

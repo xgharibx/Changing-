@@ -106,7 +106,7 @@ class Catalog(private val db: Db, private val env: String, private val clock: ()
     ) {
         ChangeItem(it.uuid("id").toString(), it.getString("kind"), it.getString("field"), it.getString("old_value"), it.getString("new_value"), it.getString("currency")?.trim(),
             it.getObject("effective_on", LocalDate::class.java)?.toString(), it.instant("recorded_at").toString(), L10n(it.getString("s_en"), it.getString("s_ar")),
-            it.getString("note"), it.getBoolean("like_for_like"))
+            it.getString("note"), it.getBoolean("like_for_like"), (it.getArray("reasons").array as Array<*>).map { r -> r.toString() })
     }
 
     fun changesFor(ids: List<UUID>, since: Instant?): Map<String, List<ChangeItem>> = db.read { ids.associate { it.toString() to changes(this, it, since) } }

@@ -107,4 +107,7 @@
     <plurals name="results_count"><item quantity="one">%1$s offer</item><item quantity="other">%1$s offers</item></plurals>
     <plurals name="beds"><item quantity="one">%1$s bedroom</item><item quantity="other">%1$s bedrooms</item></plurals>
     <plurals name="changes_badge"><item quantity="one">%1$s change</item><item quantity="other">%1$s changes</item></plurals>
+    <string name="reason_plan_changed">payment plan changed too</string>
+    <string name="reason_area_changed">area changed too</string>
+    <string name="reason_currency_changed">currency changed</string>
 </resources>

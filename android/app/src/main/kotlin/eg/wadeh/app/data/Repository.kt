@@ -34,7 +34,7 @@ class ApiException(val status: Int, message: String) : IOException(message)
  */
 class Repository(context: Context, private val baseUrl: String = BuildConfig.API_BASE_URL) {
     private val http = OkHttpClient.Builder()
-        .connectTimeout(8, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS).readTimeout(BuildConfig.NETWORK_TIMEOUT_S.toLong(), TimeUnit.SECONDS).callTimeout(BuildConfig.NETWORK_TIMEOUT_S.toLong(), TimeUnit.SECONDS)
         .retryOnConnectionFailure(true).build()
     private val cacheDir = File(context.cacheDir, "api").apply { mkdirs() }
 

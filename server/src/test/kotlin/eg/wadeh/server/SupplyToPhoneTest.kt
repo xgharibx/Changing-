@@ -76,14 +76,30 @@ class SupplyToPhoneTest {
         imports.publish(b2.batchId, reviewer, false)
 
         val detail = http.get("/v1/listings/${card.id}").body<ListingDetail>()
-        val priceChanges = detail.changes.filter { it.kind == "price_changed" }
-        assertEquals(1, priceChanges.size, "phone must show exactly one price change, got ${detail.changes}")
+        val visible = detail.changes.filter { it.kind != "offer_published" }
+        assertEquals(1, visible.size, "phone must show exactly one change, got $visible")
+        val priceChanges = visible.filter { it.kind == "price_changed" }
+        assertEquals(1, priceChanges.size)
         assertEquals("800000000", priceChanges[0].oldValue)
         assertEquals("840000000", priceChanges[0].newValue)
         assertFalse(priceChanges[0].likeForLike, "instalment amount changed too, so not like-for-like")
+        assertEquals(listOf("plan_changed"), priceChanges[0].reasons)
         assertEquals(2, detail.card.offerVersion)
         assertEquals(listOf("current", "superseded"), detail.versions.map { it.status })
         assertEquals("2026-11-10", detail.card.evidence.assertedOn)
+    }
+
+    @Test fun `ready-to-move unit re-sent on a newer sheet creates no handover change`() {
+        importAndPublish(Seed.TEST_SUPPLIER, Csv.of(Csv.Row(unit = "R1", handover = "استلام فوري")))
+        importAndPublish(Seed.TEST_SUPPLIER, Csv.of(Csv.Row(unit = "R1", handover = "فوري", asOf = "2026-11-10")), "r2.csv")
+        assertEquals(listOf("offer_published"), events("R1").map { it[0] })
+        assertEquals("ready", db.read { one("SELECT handover FROM offer_version WHERE status='current'") { it.getString(1) } })
+    }
+
+    @Test fun `plan-only change is its own event`() {
+        importAndPublish(Seed.TEST_SUPPLIER, Csv.of(Csv.Row(unit = "P1")))
+        importAndPublish(Seed.TEST_SUPPLIER, Csv.of(Csv.Row(unit = "P1", mnt = "450000", asOf = "2026-11-10")), "p2.csv")
+        assertEquals(listOf("offer_published", "plan_changed"), events("P1").map { it[0] })
     }
 
     @Test fun `like-for-like price cut is labelled as such`() {

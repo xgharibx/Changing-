@@ -70,5 +70,7 @@ class ScreenshotTest {
     @Test @Config(qualifiers = "ar-w360dp-h740dp-night-xhdpi") fun list_ar_small_dark() = list("list-ar-small-dark")
     @Test @Config(qualifiers = "en-w393dp-h1900dp-xhdpi") fun detail_q1_en() = detail("detail-b12-0304-v1.json", "detail-b12-0304-v1-en")
     @Test @Config(qualifiers = "ar-w393dp-h1900dp-xhdpi") fun detail_q1_ar() = detail("detail-b12-0304-v1.json", "detail-b12-0304-v1-ar")
+    @Test @Config(qualifiers = "en-w393dp-h2100dp-xhdpi") fun detail_q1_v2_en() = detail("detail-b12-0304-v2.json", "detail-b12-0304-v2-after-revision-en")
+    @Test @Config(qualifiers = "ar-w393dp-h2100dp-xhdpi") fun detail_q1_v2_ar() = detail("detail-b12-0304-v2.json", "detail-b12-0304-v2-after-revision-ar")
     @Test @Config(qualifiers = "ar-w360dp-h1900dp-xhdpi", fontScale = 1.5f) fun detail_unknown_parking_ar_large_font() = detail("detail-b12-0512.json", "detail-b12-0512-ar-font150")
 }

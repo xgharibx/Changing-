@@ -74,6 +74,7 @@ data class ChangeItem(
     val source: L10n,
     val note: String?,
     val likeForLike: Boolean,      // false when e.g. the plan or area basis changed together with the price
+    val reasons: List<String> = emptyList(), // plan_changed | area_changed | currency_changed — localised by clients
 )
 
 @Serializable
@@ -105,3 +106,16 @@ data class ApiError(val code: String, val message: String, val correlationId: St
 
 @Serializable
 data class Health(val status: String, val env: String, val version: String, val dbMigration: String?, val time: String)
+
+@Serializable
+data class CompareResponse(val cards: List<ListingCard>, val comparison: eg.wadeh.core.Comparison, val asOf: String)
+
+@Serializable
+data class CreateShareRequest(val listingIds: List<String>, val lang: String = "ar")
+
+/** ownerSecret is returned exactly once; the app keeps it locally to revoke the link later. */
+@Serializable
+data class CreateShareResponse(val token: String, val ownerSecret: String, val url: String, val expiresAt: String)
+
+@Serializable
+data class SharedComparison(val token: String, val compare: CompareResponse, val expiresAt: String, val missing: Int)
