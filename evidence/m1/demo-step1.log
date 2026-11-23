@@ -1,0 +1,5 @@
+login operator: 302  reviewer: 302
+1) staged  3221e48a-7160-4637-87f0-cf571795c893
+   operator tries to publish own batch -> You%20cannot%20review%20imports%20for%20this%20organisation
+   published -> Published.%206%20consumer-visible%20changes.
+   API now lists: 6 offers
