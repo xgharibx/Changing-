@@ -16,7 +16,7 @@ class CompareTest {
         assertEquals(80_000_000L, r.cashToStartMinor)
         assertEquals(170_000_000L, r.first12MonthsMinor)
         assertEquals(82_000_000L, r.largestSingleDateMinor)
-        assertEquals(4_848_485L, r.pricePerM2Minor) // 8,000,000 / 165 = 48,484.85
+        assertEquals(4_848_500L, r.pricePerM2Minor) // 8,000,000 / 165 = 48,484.85 -> EGP 48,485
     }
 
     @Test fun `unknown mandatory fee is never declared the lowest total`() {

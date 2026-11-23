@@ -19,6 +19,7 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.http.content.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
@@ -88,6 +89,7 @@ fun Application.module(app: App) {
     }
     routing {
         get("/") { call.respondRedirect("/console") }
+        staticResources("/static", "static")
         route("/v1") { publicApi(app) }
         consoleRoutes(app)
         sharingRoutes(app, app.sharing)

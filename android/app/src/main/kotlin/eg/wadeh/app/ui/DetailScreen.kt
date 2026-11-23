@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,11 +34,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class DetailViewModel(private val repo: Repository, val id: String) : ViewModel() {
+class DetailViewModel(private val repo: Repository, val id: String, val store: eg.wadeh.app.data.SavedStore) : ViewModel() {
     private val _state = MutableStateFlow<LoadState<ListingDetail>>(LoadState.Loading)
     val state: StateFlow<LoadState<ListingDetail>> = _state
     init { refresh() }
-    fun refresh() { viewModelScope.launch { _state.value = runCatching { repo.detail(id) }.fold({ LoadState.Ready(it) }, { LoadState.Failed(it.message) }) } }
+    fun refresh() { viewModelScope.launch {
+        _state.value = runCatching { repo.detail(id) }.fold({ LoadState.Ready(it) }, { LoadState.Failed(it.message) })
+        (_state.value as? LoadState.Ready)?.value?.let { if (!it.fromCache) store.markSeen(it.data.card) }
+    } }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,13 +53,27 @@ fun DetailScreen(vm: DetailViewModel, onBack: () -> Unit, onOpen: (String) -> Un
         TopAppBar(title = {
             val t = (state as? LoadState.Ready)?.value?.data?.card?.project?.pick(arabic) ?: ""
             Text(t, maxLines = 1)
-        }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) } })
+        }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.back)) } },
+    actions = {
+        val homes by vm.store.homes.collectAsState()
+        val card = (state as? LoadState.Ready)?.value?.data?.card
+        if (card != null) {
+            val saved = homes.any { it.listingId == card.id }
+            IconToggleButton(checked = saved, onCheckedChange = { vm.store.toggle(card) }, modifier = Modifier.testTag("save_toggle")) {
+                Icon(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, contentDescription = stringResource(if (saved) R.string.unsave else R.string.save))
+            }
+        }
+    })
     }) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (val s = state) {
                 LoadState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                 is LoadState.Failed -> ErrorState(vm::refresh)
-                is LoadState.Ready -> DetailBody(s.value.data, s.value.fromCache, s.value.fetchedAt, arabic, onOpen)
+                is LoadState.Ready -> {
+                    val homes by vm.store.homes.collectAsState()
+                    val saved = homes.firstOrNull { it.listingId == s.value.data.card.id }
+                    DetailBody(s.value.data, s.value.fromCache, s.value.fetchedAt, arabic, onOpen, note = saved?.note, onNote = if (saved != null) { n -> vm.store.setNote(saved.listingId, n) } else null)
+                }
             }
         }
     }
@@ -83,7 +101,8 @@ private fun KeyFigure(label: String, value: String, sub: String? = null, emphasi
 }
 
 @Composable
-internal fun DetailBody(d: ListingDetail, fromCache: Boolean, fetchedAt: java.time.Instant, arabic: Boolean, onOpen: (String) -> Unit) {
+internal fun DetailBody(d: ListingDetail, fromCache: Boolean, fetchedAt: java.time.Instant, arabic: Boolean, onOpen: (String) -> Unit,
+                        note: String? = null, onNote: ((String) -> Unit)? = null) {
     val c = d.card; val st = LocalStatus.current
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("detail")) {
         if (fromCache) item { OfflineBanner(fetchedAt) }
@@ -115,6 +134,11 @@ internal fun DetailBody(d: ListingDetail, fromCache: Boolean, fetchedAt: java.ti
             }
         }
         d.cashflow?.let { cf -> item { MoneySection(cf, arabic) } }
+        if (onNote != null) item {
+            var text by rememberSaveable(d.card.id) { mutableStateOf(note.orEmpty()) }
+            OutlinedTextField(value = text, onValueChange = { text = it; onNote(it) }, modifier = Modifier.fillMaxWidth().testTag("private_note"),
+                label = { Text(stringResource(R.string.private_note)) }, supportingText = { Text(stringResource(R.string.private_note_hint)) }, minLines = 2)
+        }
         item { ChangesSection(d.changes, c.currency, arabic) }
         item {
             Section(stringResource(R.string.section_evidence)) {

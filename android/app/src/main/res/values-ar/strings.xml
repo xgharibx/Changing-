@@ -110,4 +110,33 @@
     <string name="reason_plan_changed">تغيّرت خطة السداد أيضًا</string>
     <string name="reason_area_changed">تغيّرت المساحة أيضًا</string>
     <string name="reason_currency_changed">تغيّرت العملة</string>
+    <string name="nav_search">بحث</string>
+    <string name="nav_saved">المحفوظة</string>
+    <string name="saved_title">الوحدات المحفوظة</string>
+    <string name="saved_empty_title">لا توجد وحدات محفوظة بعد</string>
+    <string name="saved_empty_body">احفظ أي وحدة من صفحة تفاصيلها. المحفوظات تبقى على هذا الهاتف وتعمل بدون إنترنت.</string>
+    <string name="select_to_compare">اختر من ٢ إلى ٤ وحدات للمقارنة جنبًا إلى جنب.</string>
+    <string name="include_in_comparison">قارن</string>
+    <string name="compare_n">قارن %1$d وحدات</string>
+    <string name="compare_title">جنبًا إلى جنب</string>
+    <string name="share_comparison">شارك رابطًا للقراءة فقط</string>
+    <string name="share_failed">تعذّر إنشاء الرابط. لم تتم مشاركة أي شيء.</string>
+    <string name="compare_private_note">الروابط تعرض تفاصيل العرض العامة فقط. ملاحظاتك وميزانيتك تبقى على هذا الهاتف.</string>
+    <string name="cmp_price">السعر المعلن</string>
+    <string name="cmp_price_per_m2">سعر المتر</string>
+    <string name="cmp_handover">الاستلام</string>
+    <string name="cmp_lowest">الأقل</string>
+    <string name="cmp_ppm_suppressed">لم تتم المقارنة: هذه العروض تقيس المساحة بطرق مختلفة أو تذكر أنواع أسعار مختلفة.</string>
+    <string name="cmp_total_suppressed">لا نحدد «الأقل»: عرض واحد على الأقل فيه رسوم مطلوبة بدون مبلغ.</string>
+    <string name="your_links">روابطك المشتركة</string>
+    <string name="link_revoked">أُلغي: الرابط لم يعد يفتح</string>
+    <string name="link_expires">ينتهي %1$s</string>
+    <string name="revoke">إلغاء الرابط</string>
+    <string name="revoke_failed">تعذّر الإلغاء. تحقّق من الاتصال وحاول مرة أخرى.</string>
+    <string name="save">احفظ الوحدة</string>
+    <string name="unsave">إزالة من المحفوظات</string>
+    <string name="private_note">ملاحظة خاصة</string>
+    <string name="private_note_hint">على هذا الهاتف فقط. لا تتم مشاركتها أبدًا.</string>
+    <plurals name="changes_since_seen"><item quantity="zero">لا تغييرات</item><item quantity="one">تغيير واحد منذ آخر مرة</item><item quantity="two">تغييران منذ آخر مرة</item><item quantity="few">%1$s تغييرات منذ آخر مرة</item><item quantity="many">%1$s تغييرًا منذ آخر مرة</item><item quantity="other">%1$s تغيير منذ آخر مرة</item></plurals>
+    <plurals name="homes_count"><item quantity="zero">لا وحدات</item><item quantity="one">وحدة واحدة</item><item quantity="two">وحدتان</item><item quantity="few">%1$s وحدات</item><item quantity="many">%1$s وحدة</item><item quantity="other">%1$s وحدة</item></plurals>
 </resources>

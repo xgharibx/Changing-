@@ -112,7 +112,7 @@ private fun HTML.sharePage(s: SharedComparison, ar: Boolean) {
         // Preview text is generic on purpose: no prices, notes or addresses in link previews.
         title(if (ar) "مقارنة ${cmp.cards.size} وحدات · واضح" else "Comparing ${cmp.cards.size} homes · Wadeh")
         meta(name = "description", content = if (ar) "مقارنة للقراءة فقط" else "Read-only comparison")
-        style { unsafe { +"body{margin:0;font:15px/1.6 system-ui,'Noto Sans Arabic',sans-serif;background:#f6f7f4;color:#10231a}main{max-width:900px;margin:auto;padding:16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:8px;border-bottom:1px solid #dce3de;text-align:start;vertical-align:top}th{background:#eef2ef}.low{color:#0b5d3f;font-weight:700}.warn{color:#7a4b00}.tag{background:#fff1d6;color:#7a4b00;border-radius:4px;padding:1px 6px;font-size:12px}" } }
+        style { unsafe { +"@font-face{font-family:Plex;src:url(/static/plex-arabic-regular.ttf)}@font-face{font-family:Plex;font-weight:700;src:url(/static/plex-arabic-bold.ttf)}body{margin:0;font:15px/1.6 Plex,system-ui,sans-serif;background:#f6f7f4;color:#10231a}main{max-width:900px;margin:auto;padding:16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:8px;border-bottom:1px solid #dce3de;text-align:start;vertical-align:top}th{background:#eef2ef}.low{color:#0b5d3f;font-weight:700}.warn{color:#7a4b00}.tag{background:#fff1d6;color:#7a4b00;border-radius:4px;padding:1px 6px;font-size:12px}" } }
     }
     body {
         attributes["dir"] = if (ar) "rtl" else "ltr"
@@ -123,19 +123,35 @@ private fun HTML.sharePage(s: SharedComparison, ar: Boolean) {
             table {
                 thead { tr { th { }; cmp.cards.forEach { c -> th { +c.project.pick(ar); br; +(c.unitCode ?: ""); if (c.isTestData) { br; span("tag") { +(if (ar) "بيانات اصطناعية" else "synthetic") } } } } } }
                 tbody {
-                    fun row(label: String, key: String?, f: (Int) -> String) = tr { th { +label }; cmp.cards.indices.forEach { i -> td(if (key != null && cmp.comparison.lowest[key] == cmp.cards[i].id) "low" else null) { +f(i) } } }
+                    fun row(label: String, key: String?, f: (Int) -> String) = tr { th { +label }; cmp.cards.indices.forEach { i ->
+                        val low = key != null && cmp.comparison.lowest[key] == cmp.cards[i].id
+                        td(if (low) "low" else null) { +f(i); if (low) { br; +(if (ar) "(الأقل)" else "(lowest)") } } } }
                     row(if (ar) "السعر" else "Price", null) { i -> m(cmp.cards[i].priceMinor, cmp.cards[i].currency) }
                     row(if (ar) "المطلوب للبدء" else "Cash to start", "cash_to_start") { i -> m(cmp.comparison.rows[i].cashToStartMinor, cmp.cards[i].currency) }
                     row(if (ar) "أول ١٢ شهر" else "First 12 months", "first_12_months") { i -> m(cmp.comparison.rows[i].first12MonthsMinor, cmp.cards[i].currency) }
                     row(if (ar) "إجمالي إلزامي معروف" else "Known mandatory total", "known_mandatory") { i ->
                         val r = cmp.comparison.rows[i]; m(r.knownMandatoryMinor, cmp.cards[i].currency) + if (!r.exactTotalKnown) (if (ar) " + رسوم غير معروفة" else " + unknown fee") else "" }
                     row(if (ar) "سعر المتر" else "Price per m²", "price_per_m2") { i -> cmp.comparison.rows[i].pricePerM2Minor?.let { m(it, cmp.cards[i].currency) } ?: (if (ar) "غير قابل للمقارنة" else "not comparable") }
-                    row(if (ar) "الاستلام" else "Handover", null) { i -> cmp.cards[i].handover ?: "—" }
+                    row(if (ar) "الاستلام" else "Handover", null) { i -> handoverText(cmp.cards[i].handover, ar) }
                     row(if (ar) "المصدر" else "Source", null) { i -> cmp.cards[i].evidence.label.pick(ar) }
                 }
             }
-            cmp.comparison.suppressed.values.forEach { p("warn") { +it } }
+            cmp.comparison.suppressed.keys.forEach { k -> p("warn") { +suppressedText(k, cmp.comparison.suppressed[k]!!, ar) } }
             p { a("?lang=${if (ar) "en" else "ar"}") { +(if (ar) "English" else "العربية") } }
         }
     }
+}
+
+private fun handoverText(h: String?, ar: Boolean): String = when {
+    h == null -> "—"
+    h == "ready" -> if (ar) "استلام فوري" else "Ready to move"
+    Regex("^\\d{4}-Q[1-4]$").matches(h) -> { val q = h.last().digitToInt(); if (ar) "الربع ${listOf("الأول", "الثاني", "الثالث", "الرابع")[q - 1]} ${eg.wadeh.core.Digits.toArabicIndic(h.take(4))}" else "Q$q ${h.take(4)}" }
+    else -> if (ar) eg.wadeh.core.Digits.toArabicIndic(h) else h
+}
+
+private fun suppressedText(key: String, en: String, ar: Boolean): String = if (!ar) en else when (key) {
+    "price_per_m2" -> "سعر المتر غير قابل للمقارنة: المساحات مقاسة بطرق مختلفة أو الأسعار من أنواع مختلفة."
+    "known_mandatory_lowest" -> "لا نحدد «الأقل» للإجمالي: عرض واحد على الأقل فيه رسوم مطلوبة بدون مبلغ."
+    "all_money" -> "عملات مختلفة؛ لا نقارن المبالغ مباشرة."
+    else -> en
 }

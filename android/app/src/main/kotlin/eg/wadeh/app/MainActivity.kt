@@ -21,9 +21,25 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import eg.wadeh.app.data.Repository
 import eg.wadeh.app.ui.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.res.stringResource
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 class WadehApp : Application() {
     val repository by lazy { Repository(this) }
+    val saved by lazy { eg.wadeh.app.data.SavedStore(this) }
 }
 
 class MainActivity : AppCompatActivity() {
@@ -34,10 +50,30 @@ class MainActivity : AppCompatActivity() {
         setContent {
             WadehTheme {
                 val nav = rememberNavController()
-                NavHost(nav, startDestination = "listings") {
+                val store = (application as WadehApp).saved
+                val backStack by nav.currentBackStackEntryAsState()
+                val route = backStack?.destination?.route
+                androidx.compose.material3.Scaffold(modifier = Modifier.semantics { testTagsAsResourceId = true }, bottomBar = {
+                    if (route == "listings" || route == "saved") NavigationBar {
+                        NavigationBarItem(selected = route == "listings", onClick = { nav.navigate("listings") { popUpTo("listings") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Outlined.Search, null) }, label = { Text(stringResource(R.string.nav_search)) })
+                        NavigationBarItem(selected = route == "saved", onClick = { nav.navigate("saved") { popUpTo("listings") { saveState = true }; launchSingleTop = true; restoreState = true } },
+                            icon = { Icon(Icons.Outlined.BookmarkBorder, null) }, label = { Text(stringResource(R.string.nav_saved)) }, modifier = Modifier.testTag("nav_saved"))
+                    }
+                }) { pad ->
+                NavHost(nav, startDestination = "listings", modifier = Modifier.padding(pad)) {
                     composable("listings") {
                         val vm: ListingsViewModel = viewModel(factory = factory { ListingsViewModel(repo, it) })
                         ListingsScreen(vm, onOpen = { id -> nav.navigate("listing/$id") }, onToggleLanguage = ::toggleLanguage)
+                    }
+                    composable("saved") {
+                        val vm: SavedViewModel = viewModel(factory = factory { SavedViewModel(repo, store) })
+                        SavedScreen(vm, onOpen = { id -> nav.navigate("listing/$id") }, onCompare = { ids -> nav.navigate("compare/" + ids.joinToString(",")) })
+                    }
+                    composable("compare/{ids}", arguments = listOf(navArgument("ids") { type = NavType.StringType })) { entry ->
+                        val ids = entry.arguments?.getString("ids").orEmpty().split(',').filter { it.isNotBlank() }
+                        val vm: CompareViewModel = viewModel(key = "cmp-$ids", factory = factory { CompareViewModel(repo, store, ids) })
+                        CompareScreen(vm, onBack = { nav.popBackStack() })
                     }
                     composable(
                         "listing/{id}",
@@ -45,9 +81,10 @@ class MainActivity : AppCompatActivity() {
                         deepLinks = listOf(navDeepLink { uriPattern = "wadeh://listing/{id}" }),
                     ) { entry ->
                         val id = entry.arguments?.getString("id").orEmpty()
-                        val vm: DetailViewModel = viewModel(key = "detail-$id", factory = factory { DetailViewModel(repo, id) })
+                        val vm: DetailViewModel = viewModel(key = "detail-$id", factory = factory { DetailViewModel(repo, id, store) })
                         DetailScreen(vm, onBack = { if (!nav.popBackStack()) nav.navigate("listings") }, onOpen = { other -> nav.navigate("listing/$other") })
                     }
+                }
                 }
             }
         }

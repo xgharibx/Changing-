@@ -1,0 +1,1 @@
+price_changed cash_price None -> 540000000 like-for-like: True []

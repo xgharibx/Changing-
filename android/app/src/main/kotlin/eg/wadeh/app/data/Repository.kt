@@ -2,6 +2,10 @@ package eg.wadeh.app.data
 
 import android.content.Context
 import eg.wadeh.app.BuildConfig
+import eg.wadeh.core.api.ChangeItem
+import eg.wadeh.core.api.CompareResponse
+import eg.wadeh.core.api.CreateShareRequest
+import eg.wadeh.core.api.CreateShareResponse
 import eg.wadeh.core.api.ListingCard
 import eg.wadeh.core.api.ListingDetail
 import eg.wadeh.core.api.Page
@@ -12,7 +16,12 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -64,4 +73,30 @@ class Repository(context: Context, private val baseUrl: String = BuildConfig.API
         get("/v1/listings", mapOf("q" to q, "cursor" to cursor, "limit" to "30"), Page.serializer(ListingCard.serializer()), "listings|$q|$cursor")
 
     suspend fun detail(id: String): Loaded<ListingDetail> = get("/v1/listings/$id", emptyMap(), ListingDetail.serializer(), "detail|$id")
+
+    suspend fun compare(ids: List<String>): Loaded<CompareResponse> =
+        get("/v1/compare", mapOf("ids" to ids.joinToString(",")), CompareResponse.serializer(), "compare|${ids.sorted()}")
+
+    private suspend fun <T> send(method: String, path: String, body: String?, ser: KSerializer<T>?, headers: Map<String, String> = emptyMap()): T? = withContext(Dispatchers.IO) {
+        val b = Request.Builder().url(baseUrl + path).header("X-Request-Id", UUID.randomUUID().toString())
+        headers.forEach { (k, v) -> b.header(k, v) }
+        b.method(method, body?.toRequestBody("application/json".toMediaType()))
+        http.newCall(b.build()).execute().use { res ->
+            val text = res.body?.string().orEmpty()
+            if (!res.isSuccessful) throw ApiException(res.code, "HTTP ${res.code}")
+            ser?.let { wireJson.decodeFromString(it, text) }
+        }
+    }
+
+    /** Changes per listing recorded after `since` (the oldest last-seen time among the requested homes). */
+    suspend fun changesSince(ids: List<String>, since: Instant?): Map<String, List<ChangeItem>> =
+        send("POST", "/v1/changes", wireJson.encodeToString(eg.wadeh.app.data.ChangesBody.serializer(), ChangesBody(ids, since?.toString())),
+            MapSerializer(String.serializer(), ListSerializer(ChangeItem.serializer())))!!
+
+    suspend fun createShare(ids: List<String>, lang: String): CreateShareResponse =
+        send("POST", "/v1/shares", wireJson.encodeToString(CreateShareRequest.serializer(), CreateShareRequest(ids, lang)), CreateShareResponse.serializer())!!
+
+    suspend fun revokeShare(token: String, secret: String) { send<Unit>("DELETE", "/v1/shares/$token", null, null, mapOf("X-Owner-Secret" to secret)) }
 }
+
+@Serializable data class ChangesBody(val ids: List<String>, val since: String?)

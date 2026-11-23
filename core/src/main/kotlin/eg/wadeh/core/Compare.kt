@@ -66,8 +66,10 @@ object Compare {
         val rows = items.map { i ->
             val cf = i.plan?.let { CashFlowEngine.compute(it) }
             val handoverEnd = i.handover?.let { runCatching { PreciseDate.parseIso(it).latest() }.getOrNull() }
+            // Price per m² is a comparison aid: rounded HALF_UP to a whole major unit (e.g. whole pounds).
+            val unit = BigDecimal.TEN.pow(Currencies.of(i.currency).minorDigits)
             val ppm = if (ppmOk && i.priceMinor != null && i.areaM2 != null) BigDecimal.valueOf(i.priceMinor)
-                .divide(BigDecimal(i.areaM2), 0, RoundingMode.HALF_UP).longValueExact() else null
+                .divide(BigDecimal(i.areaM2).multiply(unit), 0, RoundingMode.HALF_UP).multiply(unit).longValueExact() else null
             CompareRow(
                 id = i.id, nominalMinor = i.priceMinor, cashPriceMinor = i.cashPriceMinor,
                 knownMandatoryMinor = cf?.knownMandatoryMinor ?: i.cashPriceMinor,

@@ -110,4 +110,33 @@
     <string name="reason_plan_changed">payment plan changed too</string>
     <string name="reason_area_changed">area changed too</string>
     <string name="reason_currency_changed">currency changed</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_saved">Saved</string>
+    <string name="saved_title">Saved homes</string>
+    <string name="saved_empty_title">Nothing saved yet</string>
+    <string name="saved_empty_body">Save a home from its details page. Saved homes stay on this phone and work offline.</string>
+    <string name="select_to_compare">Select 2 to 4 homes to compare side by side.</string>
+    <string name="include_in_comparison">Compare</string>
+    <string name="compare_n">Compare %1$d homes</string>
+    <string name="compare_title">Side by side</string>
+    <string name="share_comparison">Share a read-only link</string>
+    <string name="share_failed">Couldn\'t create a link. Nothing was shared.</string>
+    <string name="compare_private_note">Links show public offer details only. Your notes and saved budget stay on this phone.</string>
+    <string name="cmp_price">Headline price</string>
+    <string name="cmp_price_per_m2">Price per m²</string>
+    <string name="cmp_handover">Handover</string>
+    <string name="cmp_lowest">Lowest</string>
+    <string name="cmp_ppm_suppressed">Not compared: these offers measure area differently or quote different price types.</string>
+    <string name="cmp_total_suppressed">No “lowest” shown: at least one offer has a required fee with no amount.</string>
+    <string name="your_links">Your shared links</string>
+    <string name="link_revoked">Revoked: the link no longer opens</string>
+    <string name="link_expires">Expires %1$s</string>
+    <string name="revoke">Revoke</string>
+    <string name="revoke_failed">Couldn\'t revoke. Check your connection and try again.</string>
+    <string name="save">Save home</string>
+    <string name="unsave">Remove from saved</string>
+    <string name="private_note">Private note</string>
+    <string name="private_note_hint">Only on this phone. Never shared.</string>
+    <plurals name="changes_since_seen"><item quantity="one">%1$s change since you looked</item><item quantity="other">%1$s changes since you looked</item></plurals>
+    <plurals name="homes_count"><item quantity="one">%1$s home</item><item quantity="other">%1$s homes</item></plurals>
 </resources>
